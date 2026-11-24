@@ -1,0 +1,319 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Girls' Christmas Lists</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Nunito+Sans:opsz,wght@6..12,400;6..12,600;6..12,700&display=swap">
+<style>
+body{margin:0}[hidden]{display:none!important}:root{color-scheme:light}
+/* Layout: one quiet header with the overall tally, then a column per girl, each a stack of tick-off gift rows. */
+:root {
+  --bg: #f1f5f3;
+  --surface: #ffffff;
+  --ink: #15261f;
+  --muted: #586b62;
+  --line: #d3ddd8;
+  --pine: #1c6a48;
+  --pine-soft: #e2f0e9;
+  --berry: #b0243b;
+  --gold: #a87a1c;
+  --font-display: "Bricolage Grotesque", "Trebuchet MS", system-ui, sans-serif;
+  --font-body: "Nunito Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0e1915; --surface: #16241e; --ink: #e7f0eb; --muted: #9bb0a6; --line: #2b3f36;
+    --pine: #62c89a; --pine-soft: #1c3329; --berry: #f27f90; --gold: #e2ba62;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0e1915; --surface: #16241e; --ink: #e7f0eb; --muted: #9bb0a6; --line: #2b3f36;
+  --pine: #62c89a; --pine-soft: #1c3329; --berry: #f27f90; --gold: #e2ba62;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 1rem;
+  line-height: 1.45;
+}
+.page {
+  max-width: 68rem;
+  margin: 0 auto;
+  padding-block: 2rem 4rem;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: flex;
+  flex-direction: column;
+  gap: 1.75rem;
+}
+
+.top { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 1rem 2rem; }
+.top h1 {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: clamp(2rem, 6vw, 3.25rem);
+  line-height: 1;
+  letter-spacing: -0.02em;
+  margin: 0;
+  text-wrap: balance;
+}
+.top h1 span { color: var(--berry); }
+.top p { margin: 0.5rem 0 0; color: var(--muted); max-width: 34rem; }
+.tally { display: flex; flex-direction: column; gap: 0.5rem; align-items: flex-start; }
+.tally strong { font-family: var(--font-display); font-size: 1.125rem; font-variant-numeric: tabular-nums; }
+.switch { display: inline-flex; align-items: center; gap: 0.5rem; color: var(--muted); font-size: 0.9375rem; cursor: pointer; }
+.switch input { width: 1.1rem; height: 1.1rem; accent-color: var(--pine); }
+
+.notice {
+  border: 1px dashed var(--line);
+  border-radius: 0.5rem;
+  padding: 0.75rem 1rem;
+  color: var(--muted);
+  font-size: 0.9375rem;
+}
+
+.lists { display: grid; grid-template-columns: repeat(auto-fit, minmax(17rem, 1fr)); gap: 2rem 1.5rem; align-items: start; }
+.kid { min-width: 0; display: flex; flex-direction: column; gap: 0.75rem; }
+.kid-head { display: flex; align-items: baseline; justify-content: space-between; gap: 0.75rem; }
+.kid-head h2 {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 1.75rem;
+  letter-spacing: -0.01em;
+  margin: 0;
+  display: flex; align-items: center; gap: 0.5rem;
+}
+.kid-head h2::before {
+  content: ""; width: 0.75rem; height: 0.75rem; border-radius: 50%;
+  background: var(--kid); flex: none;
+}
+.kid[data-kid="aria"] { --kid: var(--berry); }
+.kid[data-kid="ella"] { --kid: var(--pine); }
+.kid[data-kid="eyesie"] { --kid: var(--gold); }
+.count { color: var(--muted); font-size: 0.875rem; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.bar { height: 4px; background: var(--line); border-radius: 2px; overflow: hidden; }
+.bar i { display: block; height: 100%; width: 0; background: var(--kid); transition: width 0.3s ease; }
+
+.gifts { list-style: none; margin: 0; padding: 0; background: var(--surface); border: 1px solid var(--line); border-radius: 0.75rem; overflow: hidden; }
+.gifts li + li { border-top: 1px solid var(--line); }
+.gift {
+  width: 100%;
+  display: flex; align-items: center; gap: 0.75rem;
+  padding: 0.75rem 0.875rem;
+  background: none; border: 0; color: inherit; font: inherit; text-align: left;
+  cursor: pointer;
+}
+.gift:disabled { cursor: default; }
+.gift:not(:disabled):hover { background: var(--pine-soft); }
+.gift:focus-visible, .add input:focus-visible, .add button:focus-visible, .golink:focus-visible { outline: 2px solid var(--pine); outline-offset: -2px; }
+.box {
+  flex: none; width: 1.375rem; height: 1.375rem; border-radius: 0.375rem;
+  border: 2px solid var(--muted);
+  display: grid; place-items: center;
+  color: var(--surface); font-size: 0.875rem; font-weight: 700; line-height: 1;
+}
+.name { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.status { flex: none; font-size: 0.75rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--pine); }
+.gift[aria-pressed="true"] .box { background: var(--pine); border-color: var(--pine); }
+.gift[aria-pressed="true"] .name { color: var(--muted); text-decoration: line-through; }
+.gift.saving { opacity: 0.6; }
+.empty { padding: 0.875rem; color: var(--muted); font-size: 0.9375rem; }
+
+.golink {
+  display: flex; align-items: center; justify-content: space-between; gap: 0.75rem;
+  padding: 0.875rem; border: 1px solid var(--line); border-radius: 0.75rem;
+  background: var(--surface); color: var(--ink); text-decoration: none; font-weight: 700;
+}
+.golink:hover { background: var(--pine-soft); }
+.golink small { display: block; font-weight: 400; color: var(--muted); font-size: 0.875rem; }
+.golink b { color: var(--berry); font-size: 1.25rem; }
+
+.add { display: flex; gap: 0.5rem; }
+.add input {
+  flex: 1; min-width: 0; padding: 0.5rem 0.75rem; font: inherit; color: var(--ink);
+  background: var(--surface); border: 1px solid var(--line); border-radius: 0.5rem;
+}
+.add button {
+  flex: none; padding: 0.5rem 0.875rem; font: inherit; font-weight: 700; cursor: pointer;
+  color: var(--pine); background: var(--pine-soft); border: 1px solid transparent; border-radius: 0.5rem;
+}
+@media (prefers-reduced-motion: reduce) { .bar i { transition: none; } }
+</style>
+</head>
+<body>
+<div class="page">
+  <header class="top">
+    <div>
+      <h1>Girls' Christmas <span>Lists</span></h1>
+      <p>Tap a gift once you've bought it so nobody doubles up. Tap again to undo.</p>
+    </div>
+    <div class="tally">
+      <strong id="tally">Loading the lists…</strong>
+      <label class="switch" for="hide-bought"><input type="checkbox" id="hide-bought"> Show only what's still needed</label>
+    </div>
+  </header>
+
+  <div class="notice" id="notice" hidden></div>
+
+  <main class="lists" id="lists"></main>
+</div>
+<script>
+(function () {
+  var KIDS = [
+    { id: "aria", name: "Aria", link: "https://gowish.com/s/e00459" },
+    { id: "ella", name: "Ella" },
+    { id: "eyesie", name: "Eyesie" }
+  ];
+  var gifts = [];
+  var loaded = false;
+  var saving = {};
+  var hideBought = false;
+  try { hideBought = localStorage.getItem("hideBought") === "1"; } catch (e) {}
+
+  var $lists = document.getElementById("lists");
+  var $tally = document.getElementById("tally");
+  var $notice = document.getElementById("notice");
+  var $hide = document.getElementById("hide-bought");
+  $hide.checked = hideBought;
+  $hide.addEventListener("change", function () {
+    hideBought = $hide.checked;
+    try { localStorage.setItem("hideBought", hideBought ? "1" : "0"); } catch (e) {}
+    render();
+  });
+
+  function el(tag, cls, text) {
+    var n = document.createElement(tag);
+    if (cls) n.className = cls;
+    if (text != null) n.textContent = text;
+    return n;
+  }
+  function notice(msg) { $notice.textContent = msg || ""; $notice.hidden = !msg; }
+
+  function api(body) {
+    return fetch("/api/gifts", body ? {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body)
+    } : { cache: "no-store" }).then(function (r) {
+      if (!r.ok) throw new Error("HTTP " + r.status);
+      return r.json();
+    });
+  }
+  function apply(data) { gifts = data.gifts || []; loaded = true; notice(""); render(); }
+  function refresh() {
+    if (Object.keys(saving).length) return;
+    api().then(apply, function () {
+      if (!loaded) $tally.textContent = "Can't reach the lists yet. Still trying…";
+    });
+  }
+  function failed() { notice("That didn't save. Check your connection and try again."); }
+
+  var parts = {};
+  KIDS.forEach(function (kid) {
+    var sec = el("section", "kid");
+    sec.dataset.kid = kid.id;
+    var head = el("div", "kid-head");
+    head.appendChild(el("h2", null, kid.name));
+    var count = el("span", "count", "");
+    head.appendChild(count);
+    sec.appendChild(head);
+    var bar = el("div", "bar"); var fill = el("i"); bar.appendChild(fill); sec.appendChild(bar);
+
+    if (kid.link) {
+      var a = el("a", "golink");
+      a.href = kid.link; a.target = "_blank"; a.rel = "noopener";
+      var t = el("span", null, "Open " + kid.name + "'s list on GoWish");
+      t.appendChild(el("small", null, "Her wishes live there. Reserve gifts on GoWish."));
+      a.appendChild(t); a.appendChild(el("b", null, "↗"));
+      sec.appendChild(a);
+    }
+
+    var ul = el("ul", "gifts");
+    sec.appendChild(ul);
+
+    var form = el("form", "add");
+    var input = el("input");
+    input.id = "add-" + kid.id; input.type = "text"; input.maxLength = 80;
+    input.placeholder = "Add a gift for " + kid.name;
+    input.setAttribute("aria-label", "Add a gift for " + kid.name);
+    var btn = el("button", null, "Add"); btn.type = "submit";
+    form.appendChild(input); form.appendChild(btn);
+    form.addEventListener("submit", function (e) {
+      e.preventDefault();
+      var name = input.value.trim();
+      if (!name) return;
+      btn.disabled = true;
+      api({ action: "add", kid: kid.id, name: name })
+        .then(function (d) { input.value = ""; apply(d); }, failed)
+        .then(function () { btn.disabled = false; });
+    });
+    sec.appendChild(form);
+
+    $lists.appendChild(sec);
+    parts[kid.id] = { ul: ul, count: count, fill: fill, form: form, hasLink: !!kid.link };
+  });
+
+  function toggle(g) {
+    if (saving[g.id]) return;
+    saving[g.id] = true;
+    var want = !g.purchased;
+    g.purchased = want; render();
+    api({ action: "set", id: g.id, purchased: want })
+      .then(function (d) { delete saving[g.id]; apply(d); },
+            function () { delete saving[g.id]; g.purchased = !want; failed(); render(); });
+  }
+
+  function render() {
+    var focusId = document.activeElement && document.activeElement.dataset ? document.activeElement.dataset.gift : null;
+    var total = 0, bought = 0;
+    KIDS.forEach(function (kid) {
+      var p = parts[kid.id];
+      var mine = gifts.filter(function (g) { return g.kid === kid.id; })
+        .sort(function (a, b) { return (a.order || 0) - (b.order || 0); });
+      var done = mine.filter(function (g) { return g.purchased; }).length;
+      total += mine.length; bought += done;
+      p.count.textContent = mine.length ? done + " of " + mine.length + " purchased" : "";
+      p.fill.style.width = mine.length ? (100 * done / mine.length) + "%" : "0";
+      p.form.hidden = !loaded;
+
+      var shown = hideBought ? mine.filter(function (g) { return !g.purchased; }) : mine;
+      p.ul.textContent = "";
+      p.ul.hidden = false;
+      if (!shown.length) {
+        if (p.hasLink && !mine.length) { p.ul.hidden = true; return; }
+        var msg = !loaded ? "Loading…" : mine.length ? "Everything here is purchased." : "No gifts listed yet.";
+        var li0 = el("li"); li0.appendChild(el("div", "empty", msg)); p.ul.appendChild(li0);
+        return;
+      }
+      shown.forEach(function (g) {
+        var li = el("li");
+        var b = el("button", "gift" + (saving[g.id] ? " saving" : ""));
+        b.type = "button";
+        b.dataset.gift = g.id;
+        b.setAttribute("aria-pressed", g.purchased ? "true" : "false");
+        b.appendChild(el("span", "box", g.purchased ? "✓" : ""));
+        b.appendChild(el("span", "name", g.name));
+        if (g.purchased) b.appendChild(el("span", "status", "Purchased"));
+        b.addEventListener("click", function () { toggle(g); });
+        li.appendChild(b); p.ul.appendChild(li);
+      });
+    });
+    if (loaded) $tally.textContent = total ? bought + " of " + total + " gifts purchased" : "No gifts listed yet";
+    if (focusId) {
+      var again = $lists.querySelector('[data-gift="' + focusId + '"]');
+      if (again) again.focus();
+    }
+  }
+  render();
+  refresh();
+  setInterval(function () { if (!document.hidden) refresh(); }, 10000);
+  document.addEventListener("visibilitychange", function () { if (!document.hidden) refresh(); });
+})();
+</script>
+</body>
+</html>
