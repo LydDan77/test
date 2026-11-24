@@ -1,0 +1,569 @@
+/* Research for the Disneyland Family HQ. Plain text only: the app escapes everything.
+   Gathered Nov 24, 2026 from published expert guides, news reports and Disney announcements.
+   Update this file when prices or dates change; the app reads it as-is. */
+window.GUIDE = {
+  asOf: "2026-11-24",
+  asOfLabel: "Nov 24, 2026",
+
+  /* ============ WHEN TO GO ============ */
+  whenLede: "Five kids in elementary school, a toddler and grandparents all want different things from a date: light crowds, mild weather, shows running, few school days missed, and enough months to save. No window wins on everything, so here is how they rank.",
+  verdict: [
+    "Two windows fit our crew best: the first two weeks of December 2027, Monday to Friday, and late April to mid May 2028.",
+    "Early December has the most to see for its crowd level, with the holiday fireworks, parade and ride makeovers all running, and it leaves a full year to save. Spring 2028 has the gentlest weather for August and the grandparents, and the longest runway for the trip fund.",
+    "If missing school is off the table, early June 2027 is the fallback. Whatever we pick, skip holiday weeks, and stay clear of July 10 to August 27, 2028, when the Olympics and Paralympics are in Los Angeles and Anaheim hosts the volleyball."
+  ],
+  windows: [
+    { id: "w-dec27", grade: "E", title: "Early December 2027, Monday to Friday", start: "2027-12-05", end: "2027-12-10", crowd: 3, tag: "A year to save",
+      summary: "Holiday fireworks, the Christmas parade, Haunted Mansion Holiday and the small world holiday makeover, on the calmest weekdays of the season. One expert guide calls December 13 to 17 its favorite week of the year.",
+      pros: ["The most entertainment of any lighter-crowd window", "Mild days in the high 60s", "Twelve months to save", "Disney hotels for these dates can be booked now"],
+      cons: ["Four or five school days missed", "Evenings in the 40s: bundle August up for night shows", "December is one of the rainier months", "Weekends are busy, so arrive Sunday and leave Friday"],
+      school: "Dec 6 to 10 or Dec 13 to 17, 2027 both work. From about Dec 18 the parks are at their most crowded." },
+    { id: "w-spring28", grade: "E", title: "Late April to mid May 2028", start: "2028-04-30", end: "2028-05-05", crowd: 2, tag: "Best weather",
+      summary: "After the late Easter (April 16) and before Memorial Day: warm dry days, light crowds, some of the cheapest dates of the year, and about 17 months to save.",
+      pros: ["High 70s and almost no rain: the easiest weather for a toddler and for grandparents", "Light to moderate crowds", "Well clear of the Olympics summer", "Longest saving runway of the top picks"],
+      cons: ["School days missed, and it is testing season in many districts", "Fireworks may be weekends only", "Grad Nite parties are held at California Adventure on some May evenings", "One October price rise between now and then", "2028 crowd calendars are not published yet: this ranking uses the holiday calendar and past years"],
+      school: "Any Sunday to Friday between Apr 24 and May 19, 2028. Avoid Memorial Day weekend (May 27 to 29)." },
+    { id: "w-sep27", grade: "D", title: "Late August to mid September 2027", start: "2027-09-12", end: "2027-09-17", crowd: 1, tag: "Lightest crowds",
+      summary: "The quietest weeks of the whole year, with Halloween decorations likely up. The catch is heat, and only about nine months to save.",
+      pros: ["Lowest wait times of the year in every forecast", "Halloween Time likely running (it began Aug 21 in 2026)", "Kids' summer ticket deal could apply to late August if Disney repeats it", "Low hotel rates"],
+      cons: ["Highs near 90 and heat waves: midday hotel breaks are a must for August and the grandparents", "School has just started", "Halloween party nights close California Adventure early for regular guests", "The shortest runway to save"],
+      school: "Aug 19 to 31 and Sep 7 to 26, 2027 are the expert picks. Skip Labor Day weekend (Sep 4 to 6)." },
+    { id: "w-nov27", grade: "D", title: "Mid November 2027, the week before Thanksgiving week", start: "2027-11-14", end: "2027-11-19", crowd: 3, tag: "Holiday season, cheaper",
+      summary: "The holiday season should have just begun (it started Nov 13 in 2026), with cheap midweek dates and warmer weather than December.",
+      pros: ["Holiday shows and ride makeovers without December prices", "Highs in the mid 70s", "One guide's first choice for cheap dates"],
+      cons: ["School days missed", "Veterans Day and the holiday opening weekend bring crowds just before", "The 2027 holiday start date is not announced yet"],
+      school: "Nov 15 to 19, 2027. From Nov 20 the Thanksgiving crowds arrive." },
+    { id: "w-jan28", grade: "D", title: "Late January to early February 2028", start: "2028-01-30", end: "2028-02-04", crowd: 2, tag: "Cheapest",
+      summary: "The cheapest and one of the quietest stretches, with 14 months to save. You trade away some rides and shows to get it.",
+      pros: ["Lowest prices of the year for hotels and one-day tickets", "Light crowds on weekdays", "Lunar New Year celebration at California Adventure"],
+      cons: ["Peak season for ride closures (Grizzly River Run, Haunted Mansion and small world are often down)", "Fireworks mostly on weekends", "The rainiest months, with cool evenings", "Ticketed party nights can close Disneyland Park early"],
+      school: "Jan 18 to Feb 10, 2028. Presidents' Day and ski week (Feb 18 to 28) are among the worst of the year." },
+    { id: "w-jun27", grade: "C", title: "Early June 2027, no school missed", start: "2027-06-07", end: "2027-06-12", crowd: 4, tag: "No school missed",
+      summary: "The best summer option: shows every night and the Magic Happens parade back, before the July peak. Summers have been running lighter than they used to.",
+      pros: ["No school missed in most districts", "Nightly fireworks and a full show line-up", "Long park hours"],
+      cons: ["Only six months to save", "Busier and pricier than the other windows", "Warm, and the days are long for little ones"],
+      school: "Jun 7 to 16 or Jul 1 to 6, 2027. In 2028 only Jul 3 to 7 is rated well, and the Olympics start Jul 14." },
+    { id: "w-sep28", grade: "C", title: "September 2028, after the Games", start: "2028-09-10", end: "2028-09-15", crowd: 2, tag: "Longest runway",
+      summary: "The quiet September weeks again, once the Paralympics end on August 27, with nearly two years to save and the new Avengers rides possibly open.",
+      pros: ["Twenty-one months to save", "Two new Avengers Campus rides are promised for 2028 (month not announced)", "Lightest crowds of the year"],
+      cons: ["The hottest stretch", "A long wait for the kids", "More kids at adult ticket prices, and August will be older", "Nothing about 2028 seasons is announced yet"],
+      school: "Aug 28 to Sep 22, 2028, skipping Labor Day weekend (Sep 2 to 4)." }
+  ],
+  months: [
+    { k: "Jan", name: "January", crowd: 2, hi: 69, lo: 47, rain: "3.2 in rain", crowdNote: "Light after the first week. Busy Jan 1 to 3 and over the MLK weekend.", best: "Weekdays after MLK Day (Jan 18, 2027; Jan 17, 2028)", worst: "New Year's week and the MLK weekend", on: "Holiday season runs to about Jan 6. After that, the most ride closures of the year and fireworks mostly on weekends." },
+    { k: "Feb", name: "February", crowd: 3, hi: 70, lo: 49, rain: "2.7 in rain", crowdNote: "Light in the first ten days, then a spike for Presidents' Day and ski week.", best: "The first ten days", worst: "Feb 12 to 22, 2027 (also Super Bowl weekend in Los Angeles) and Feb 18 to 28, 2028", on: "Lunar New Year at California Adventure. A refreshed Remember... Dreams Come True fireworks show and the original World of Color return in February 2027. Sweethearts' Nite parties close Disneyland Park early on ten nights." },
+    { k: "Mar", name: "March", crowd: 5, hi: 72, lo: 52, rain: "2.5 in rain", crowdNote: "Spring break. The busiest month of the year in two 2026 forecasts.", best: "The first week (milder in 2028, when Easter is late)", worst: "Mar 13 to Apr 4, 2027; from Mar 18 in 2028", on: "Food and Wine Festival at California Adventure (Mar 6 to Apr 27 in 2026). WonderCon fills Anaheim hotels Mar 26 to 28, 2027." },
+    { k: "Apr", name: "April", crowd: 4, hi: 75, lo: 55, rain: "1.1 in rain", crowdNote: "Heavy around Easter (Mar 28, 2027; Apr 16, 2028), then moderate.", best: "Apr 11 to 18, 2027; from Apr 24 in 2028", worst: "Easter week and the week either side", on: "Food and Wine Festival through late April. Ticketed After Dark party nights." },
+    { k: "May", name: "May", crowd: 2, hi: 77, lo: 59, rain: "0.2 in rain", crowdNote: "Light to moderate until Memorial Day, with some of the cheapest dates of the year.", best: "The first three weeks", worst: "Memorial Day weekend", on: "Grad Nite parties at California Adventure on scattered evenings (15 nights from May 7 to Jun 11 in 2027). Star Wars Nite." },
+    { k: "Jun", name: "June", crowd: 4, hi: 81, lo: 62, rain: "Dry", crowdNote: "Moderate to busy. Summers have been trending lighter than they used to be.", best: "The first half, midweek", worst: "Weekends", on: "Fireworks every night. The Magic Happens parade returns in time for summer 2027." },
+    { k: "Jul", name: "July", crowd: 4, hi: 86, lo: 66, rain: "Dry", crowdNote: "Moderate crowds, real heat.", best: "Jul 1 to 6, 2027; Jul 3 to 7, 2028", worst: "Jul 10 to 31, 2028 (Olympics)", on: "Full nightly show line-up." },
+    { k: "Aug", name: "August", crowd: 2, hi: 88, lo: 66, rain: "Dry", crowdNote: "Moderate early, then the lowest waits of the year from the third week as schools go back.", best: "Aug 19 to 31, 2027", worst: "Aug 15 to 27, 2028 (Paralympics)", on: "Halloween Time began Aug 21 in 2026." },
+    { k: "Sep", name: "September", crowd: 1, hi: 87, lo: 64, rain: "0.3 in rain", crowdNote: "The quietest month of the year.", best: "Sep 7 to 26, 2027", worst: "Labor Day weekend and the third weekend (Gay Days)", on: "Halloween Time. Oogie Boogie Bash party nights close California Adventure early." },
+    { k: "Oct", name: "October", crowd: 4, hi: 82, lo: 59, rain: "0.3 in rain", crowdNote: "Busy: school fall breaks plus Halloween.", best: "The first few days, midweek", worst: "Oct 7 to 17, 2027 and every weekend", on: "Halloween Time through Oct 31. Prices usually rise in the first week." },
+    { k: "Nov", name: "November", crowd: 3, hi: 75, lo: 52, rain: "1.8 in rain", crowdNote: "Light early and mid-month, packed at Thanksgiving.", best: "Monday to Friday after Veterans Day (Nov 15 to 19, 2027; Nov 13 to 17, 2028)", worst: "Nov 20 to 26, 2027; Nov 18 to 26, 2028", on: "The holiday season began Nov 13 in 2026." },
+    { k: "Dec", name: "December", crowd: 4, hi: 69, lo: 47, rain: "1.9 in rain", crowdNote: "Moderate on weekdays in the first two weeks, extreme from about Dec 18.", best: "Weekdays Dec 6 to 17, 2027; Dec 4 to 15, 2028", worst: "Dec 18 to Jan 2", on: "Believe... in Holiday Magic fireworks, A Christmas Fantasy parade, Haunted Mansion Holiday, small world Holiday and World of Color Season of Light." }
+  ],
+  ageDates: [
+    { label: "Sep 2027", date: "2027-09-12" }, { label: "Dec 2027", date: "2027-12-05" }, { label: "Feb 2028", date: "2028-01-30" }, { label: "May 2028", date: "2028-04-30" }, { label: "Sep 2028", date: "2028-09-10" }
+  ],
+  ageNote: "Under 3 is free and needs no ticket or park reservation. Child tickets cover ages 3 to 9. Age 10 and up pays the adult price. A child under 2 can also fly on a lap on US airlines.",
+  yearCompare: [
+    { topic: "Time to save", a: "6 to 13 months, depending on the season", b: "14 to 22 months" },
+    { topic: "Prices", a: "Today's ticket prices hold until the usual early-October rise", b: "One October rise higher, two after October 2028. Recent rises have run about 3 to 7% a year on multi-day tickets." },
+    { topic: "New things", a: "Nothing major opens. The Magic Happens parade and a refreshed fireworks show come back.", b: "Two Avengers Campus rides are promised for 2028, month not announced." },
+    { topic: "Closures", a: "The Monsters, Inc. ride closes for good, Autopia converts to electric cars, and two Fantasyland rides go down from Jan 4.", b: "Construction walls likely for the Tomorrowland rebuild and the Coco ride. The new east-side parking structure may open." },
+    { topic: "Outside events", a: "Super Bowl in Los Angeles on Feb 14, 2027", b: "Olympics Jul 14 to 30 and Paralympics Aug 15 to 27, 2028. Honda Center in Anaheim hosts volleyball, and hotels are expected to be costly." },
+    { topic: "Our kids", a: "More grandkids on child tickets; August is free and can fly on a lap", b: "Check each birthday: a child who turns 10 pays the adult price, and August needs a ticket from age 3" },
+    { topic: "Booking", a: "Disney hotels and packages for all of 2027 are on sale now", b: "Disney should open 2028 around late August 2027; most hotel chains open about a year ahead" }
+  ],
+  avoid: [
+    { t: "Christmas to New Year", d: "Dec 18 to Jan 3 in both years. The most crowded and most expensive days there are." },
+    { t: "Thanksgiving week", d: "Nov 20 to 26, 2027 and Nov 18 to 26, 2028." },
+    { t: "Presidents' Day and ski week", d: "Feb 12 to 22, 2027, which is also Super Bowl weekend in Los Angeles, and Feb 18 to 28, 2028." },
+    { t: "Spring break and Easter", d: "Mar 13 to Apr 4, 2027. In 2028 Easter is late, so Mar 18 to Apr 23." },
+    { t: "Fall break", d: "Oct 7 to 17, 2027, and October weekends generally." },
+    { t: "The Olympics summer", d: "Jul 10 to Aug 27, 2028. The parks may not be packed, but hotel prices, flights and traffic are a gamble for a big group." },
+    { t: "Three-day weekends", d: "MLK Day, Memorial Day, Labor Day and Veterans Day weekends all bring a surge of locals." }
+  ],
+  newStuff: [
+    { t: "Opening or returning", list: ["Avengers Infinity Defense and Stark Flight Lab at California Adventure: 2028, month not announced", "Magic Happens parade: back in time for summer 2027", "Refreshed Remember... Dreams Come True fireworks and the original World of Color: February 2027", "Already open: Bluey's Best Day Ever! show (March 2026), Soarin' Across America (July 2026), a Mandalorian and Grogu mission on Smugglers Run (May 2026)"] },
+    { t: "Closing or changing in 2027", list: ["Pinocchio's Daring Journey and Snow White's Enchanted Wish close Jan 4, 2027, with no reopening date", "Monsters, Inc. Mike and Sulley to the Rescue! closes permanently during 2027, date to come", "Autopia must begin converting to electric cars by Feb 1, 2027, so expect a long closure", "Mad Tea Party has been closed since September 2026; reopening not confirmed"] },
+    { t: "Still years away", list: ["Coco boat ride: under construction, no date (one expert guess is 2029)", "Tomorrowland rebuild: announced August 2026, no dates", "Avatar area: pushed back behind Tomorrowland"] },
+    { t: "Rule changes from 2026 worth knowing", list: ["Early park entry for Disney hotel guests ended Jan 5, 2026. Each hotel guest now gets one free Lightning Lane ride per stay instead.", "Park hopping is allowed at any time of day since June 9, 2026", "Park reservations are still required, but since Oct 7, 2026 they can be changed or cancelled without penalty", "The Anaheim resort buses (ART) stopped running Mar 31, 2026", "Dining reservations can now be made in the Disneyland app"] }
+  ],
+  events: [
+    { t: "Lunar New Year", when: "Late Jan to mid Feb", d: "At California Adventure. Ran Jan 23 to Feb 22 in 2026; 2027 dates not announced." },
+    { t: "Sweethearts' Nite", when: "Jan 24 to Feb 16, 2027", d: "Ten ticketed party nights, from $159. Disneyland Park closes early to day guests on those nights." },
+    { t: "Food and Wine Festival", when: "Early Mar to late Apr", d: "At California Adventure. Mar 6 to Apr 27 in 2026." },
+    { t: "Disneylandia, Star Wars and Pride Nites", when: "Apr 11 to Jun 17, 2027", d: "Ticketed After Dark nights: Apr 11, 13, 15; Apr 27 to May 6 (four nights); Jun 17." },
+    { t: "Grad Nites", when: "May 7 to Jun 11, 2027", d: "Fifteen evenings of high-school graduates at California Adventure." },
+    { t: "Halloween Time", when: "Late Aug to Oct 31", d: "Aug 21 to Oct 31 in 2026. Dates for the next year usually come out in December." },
+    { t: "Oogie Boogie Bash", when: "Mid Aug to Oct 31", d: "Separate-ticket Halloween party at California Adventure. In 2026: 33 nights, $139 to $199, on sale in mid-June, and every night sold out." },
+    { t: "Holidays at the Disneyland Resort", when: "Mid Nov to early Jan", d: "Nov 13, 2026 to Jan 6, 2027 this season." }
+  ],
+
+  /* ============ COUNTDOWN ============ */
+  phases: [
+    { id: "now", label: "Start now", hint: "None of these need trip dates.", off: null },
+    { id: "y1", label: "About a year out", hint: "Twelve to sixteen months before we leave: lock dates and hold refundable rooms.", off: 400 },
+    { id: "m9", label: "Six to eleven months out", hint: "Flights, tickets and park reservations.", off: 270 },
+    { id: "m4", label: "Two to five months out", hint: "Shape the days and sort the gear.", off: 120 },
+    { id: "d60", label: "Sixty days out", hint: "Dining opens. The busiest booking morning of the whole plan.", off: 60 },
+    { id: "d30", label: "The last month", hint: "Pay balances and build the day-by-day plan.", off: 30 },
+    { id: "w1", label: "The last week", hint: "", off: 7 },
+    { id: "during", label: "During the trip", hint: "", off: 0 },
+    { id: "after", label: "Once we are home", hint: "", off: -10 }
+  ],
+  tasks: [
+    { id: "n-crew", ph: "now", t: "Add everyone to the Crew page", d: "Names, households, and each child's birth month and height. It sets the ticket count and the who-can-ride chart.", go: "crew" },
+    { id: "n-survey", ph: "now", t: "Ask every household three questions", d: "Which months are impossible? What budget is comfortable? What is the one thing each person most wants to do?" },
+    { id: "n-school", ph: "now", t: "Collect the school calendars", d: "Look for days off that other districts do not share. Those are the low-crowd gold." },
+    { id: "n-window", ph: "now", t: "Shortlist two date windows", d: "Pick from the ranked windows and add them to the shortlist.", go: "when" },
+    { id: "n-budget", ph: "now", t: "Agree a budget per household, and who pays for what", d: "Run the estimate on the Budget page first so the number is real.", go: "money" },
+    { id: "n-fund", ph: "now", t: "Open a trip fund and automate a monthly transfer", d: "A separate savings account with an automatic payday transfer does most of the work.", go: "money" },
+    { id: "n-jobs", ph: "now", t: "Pick a trip captain and hand out jobs", d: "One name per job so the captain is not doing everything.", go: "crew" },
+    { id: "n-meet", ph: "now", t: "Hold the first family check-in", d: "Share this site, choose the two best windows, agree budgets.", go: "crew" },
+    { id: "n-gift", ph: "now", t: "Ask for Disney gift cards for birthdays and holidays", d: "They pay for tickets, Disney hotels, food and souvenirs. Target's Circle Card takes 5% off them.", go: "money" },
+
+    { id: "y-lock", ph: "y1", off: 420, t: "Lock the trip dates", d: "Use Lock these dates on the shortlist. Every job below then gets a due date.", go: "when" },
+    { id: "y-disney", ph: "y1", off: 400, t: "Decide whether a Disney hotel or villa is in the running", d: "Disney sells up to 499 days ahead and releases a whole year at once: all of 2027 is open, and 2028 should open around late August 2027.", go: "stay" },
+    { id: "y-insure", ph: "y1", off: 370, t: "Choose trip insurance before the first deposit", d: "Cancel-for-any-reason cover usually has to be bought soon after the first payment. It matters most with grandparents and little kids." },
+    { id: "y-hotel", ph: "y1", off: 355, t: "Book refundable rooms the day hotel calendars open", d: "Hyatt opens about 13 months ahead, Hilton 365 days, Marriott and Best Western about 350 days. Take the flexible rate and re-check prices each month.", go: "stay" },
+    { id: "y-dvc", ph: "y1", off: 335, t: "Renting Disney villa points? Ask 11 months ahead", d: "Grand Californian villas rarely last to the 7-month window. Rentals are prepaid and close to non-refundable.", go: "stay" },
+
+    { id: "m-flights", ph: "m9", off: 330, t: "Set fare alerts when flights go on sale", d: "Most airlines sell about 11 months ahead; Southwest opens later. For a big group, book when a fair price shows. Orange County (SNA) is the easy airport.", go: "stay" },
+    { id: "m-id", ph: "m9", off: 300, t: "Check every adult has a REAL ID or passport for flying", d: "And a copy of August's birth certificate if flying as a lap infant." },
+    { id: "m-days", ph: "m9", off: 250, t: "Settle the ticket plan: how many days, Park Hopper or not", d: "With little kids and midday breaks, one park a day is usually enough.", go: "money" },
+    { id: "m-tickets", ph: "m9", off: 240, t: "Buy park tickets, and before October if you can", d: "Prices have gone up in early October five years running. Multi-day tickets cost the same for any dates. Check authorized sellers and any kids' offer first.", go: "money" },
+    { id: "m-reserve", ph: "m9", off: 180, t: "Make park reservations for every ticket", d: "Still required. Link every ticket to one Disney account and reserve the day you buy. The calendar opens roughly 6 to 8 months ahead." },
+    { id: "m-events", ph: "m9", off: 150, t: "Watch for special-event tickets", d: "Halloween party tickets went on sale in mid-June in 2026 and every night sold out." },
+
+    { id: "p-anchor", ph: "m4", off: 110, t: "Choose one whole-group anchor for each day", d: "A ride, a meal or a show everyone does together. The rest of each day can flex.", go: "parks" },
+    { id: "p-ground", ph: "m4", off: 100, t: "Sort airport transport and car seats", d: "A private van, a rented minivan, or your own seats in rideshares.", go: "stay" },
+    { id: "p-shirts", ph: "m4", off: 90, t: "Order matching shirts", d: "Bright and easy to spot in a crowd. Order early enough to swap sizes." },
+    { id: "p-refurb", ph: "m4", off: 75, t: "Check which rides will be closed", d: "The refurbishment calendar firms up four to six weeks out." },
+    { id: "p-measure", ph: "m4", off: 70, t: "Measure the kids and update the ride chart", d: "Shoes on, the way cast members measure.", go: "parks" },
+
+    { id: "d-dining", ph: "d60", off: 60, t: "Book dining at 6 a.m. Pacific, 60 days out", d: "Character meals and show dining packages go first. For more than about ten people, phone Disney Dining or book two tables for the same time.", go: "parks" },
+    { id: "d-extras", ph: "d60", off: 60, t: "Book the extras anyone wants", d: "Bibbidi Bobbidi Boutique makeovers, a lightsaber build at Savi's Workshop, Droid Depot." },
+    { id: "d-shoes", ph: "d60", off: 50, t: "Break in walking shoes", d: "Expect six to ten miles a day. Start family walks now." },
+    { id: "d-wheels", ph: "d60", off: 45, t: "Reserve a stroller, and a scooter or wheelchair if needed", d: "Outside companies deliver to most Anaheim hotels and cost less than renting daily in the park." },
+    { id: "d-app", ph: "d60", off: 45, t: "Everyone installs the Disneyland app", d: "Sign in, join the Friends and Family list, add a payment card, and check that tickets show up." },
+
+    { id: "f-pay", ph: "d30", off: 30, t: "Pay final balances", d: "Disney packages are due 30 days out. Cancelling after that costs money." },
+    { id: "f-hours", ph: "d30", off: 21, t: "Check park hours and the show schedule", d: "Fireworks, parade and Fantasmic! times decide where each evening goes." },
+    { id: "f-days", ph: "d30", off: 21, t: "Build the day-by-day plan", d: "Put it on the Trip days page so everyone can see it.", go: "trip" },
+    { id: "f-gear", ph: "d30", off: 21, t: "Buy ponchos, power banks and autograph books at home", d: "All of them cost far more inside the parks." },
+    { id: "f-ll", ph: "d30", off: 14, t: "Decide which days get Lightning Lane Multi Pass", d: "$35 a person a day bought ahead, more on the day. One Disneyland Park day is the usual sweet spot.", go: "parks" },
+    { id: "f-money", ph: "d30", off: 14, t: "Load the kids' souvenir money onto gift cards", d: "When the card is empty, the shopping is done." },
+
+    { id: "w-grocery", ph: "w1", off: 3, t: "Place the grocery delivery order", d: "Breakfast food, snacks, water, diapers. Disney hotels need 48 hours' notice." },
+    { id: "w-pack", ph: "w1", off: 3, t: "Pack from the list", d: "On the Trip days page.", go: "trip" },
+    { id: "w-docs", ph: "w1", off: 2, t: "Save confirmations where they work offline", d: "Screenshots of tickets, hotel and flight details." },
+    { id: "w-weather", ph: "w1", off: 2, t: "Check the forecast and adjust layers", d: "" },
+    { id: "w-checkin", ph: "w1", off: 1, t: "Check in for flights and the hotel", d: "Share arrival times in the family chat." },
+
+    { id: "t-morning", ph: "during", off: 0, t: "Run the park-morning checklist every day", d: "Photo of each child, phone numbers on wrists, meeting spot agreed.", go: "trip" },
+    { id: "t-photo", ph: "during", off: 0, t: "Get one photo of the whole crew at the castle", d: "First thing in the morning has the thinnest crowds and the best light." },
+    { id: "t-tally", ph: "during", off: 0, t: "Keep a running who-paid-what tally", d: "" },
+
+    { id: "a-settle", ph: "after", off: -7, t: "Settle shared costs", d: "Within a week, while everyone remembers." },
+    { id: "a-album", ph: "after", off: -7, t: "Put everyone's photos in one shared album", d: "" },
+    { id: "a-notes", ph: "after", off: -10, t: "Write down what worked for next time", d: "" }
+  ],
+  decisions: [
+    { id: "when", q: "When are we going?", help: "Pick from the shortlist on the When to go page.", go: "when" },
+    { id: "length", q: "How many nights and park days?", help: "Three park days is the minimum. Four or five with midday breaks suits a toddler and grandparents.", go: "parks" },
+    { id: "stay", q: "Where are we staying?", help: "A block of walkable family rooms, Disney villas, a Disney hotel, or one big house.", go: "stay" },
+    { id: "travel", q: "How is each household getting there?", help: "Flying into Orange County, driving, or a mix.", go: "stay" },
+    { id: "budget", q: "What is the budget, and who pays for what?", help: "Agree on shared costs and personal costs before anything is booked.", go: "money" },
+    { id: "tickets", q: "Which tickets and add-ons?", help: "Number of days, Park Hopper, and which days get Lightning Lane.", go: "money" },
+    { id: "together", q: "How much time together?", help: "A common rule: one whole-group anchor a day, and everyone is free to split up around it.", go: "crew" },
+    { id: "splurge", q: "What are our one or two splurges?", help: "A character breakfast, a fireworks dining package, a villa, a family photographer.", go: "parks" }
+  ],
+  records: ["Hotel, flight and package confirmations", "Ticket numbers and which Disney account they are linked to", "Park reservation dates and dining reservation times", "Insurance policy details and the claims phone number", "Emergency contacts, allergies and medications for every person", "The hotel address and a daily meeting spot", "Stroller and scooter rental confirmations", "A who-paid-what ledger"],
+
+  /* ============ BUDGET ============ */
+  moneyLede: "A middle-of-the-road Disneyland trip runs about $1,300 to $2,200 a person with flights. Use the estimator for your own household, then let the savings plan turn the total into a monthly number.",
+  costs: {
+    adult: { 1: 174, 2: 335, 3: 425, 4: 480, 5: 520 },
+    child: { 1: 164, 2: 315, 3: 400, 4: 450, 5: 485 },
+    hopAdult: { 1: 259, 2: 445, 3: 550, 4: 610, 5: 660 },
+    hopChild: { 1: 249, 2: 425, 3: 525, 4: 580, 5: 625 },
+    ll: 35, bumpTickets: 0.05, bumpOther: 0.04, tax: 0.17, flightPP: 390, ground: 150,
+    lodging: [
+      { id: "walk", label: "Walkable hotel room, sleeps 4 to 6 (about $220 a night)", night: 220 },
+      { id: "suite", label: "Family or two-bedroom suite, sleeps 6 to 8 (about $380)", night: 380 },
+      { id: "house", label: "Our share of a rental house (about $250)", night: 250 },
+      { id: "disney", label: "Disneyland Hotel or Pixar Place (about $650)", night: 650 },
+      { id: "gcal", label: "Grand Californian (about $1,100)", night: 1100 }
+    ],
+    food: [
+      { id: "thrifty", label: "Thrifty: breakfast in the room, counter service, packed snacks", adult: 45, child: 28, baby: 5 },
+      { id: "mix", label: "Mixed: counter service plus a sit-down meal or two", adult: 70, child: 42, baby: 8 },
+      { id: "treat", label: "Treats: table service and character meals", adult: 110, child: 65, baby: 10 }
+    ]
+  },
+  prices: [
+    { item: "1-day ticket, one park", price: "$104 to $224", note: "Seven price tiers by date. Ages 3 to 9 pay about $10 less." },
+    { item: "3-day ticket", price: "$425 / $400", note: "Adult / child. Same price for any dates. Park Hopper: $550 / $525." },
+    { item: "4-day ticket", price: "$480 / $450", note: "Park Hopper: $610 / $580." },
+    { item: "5-day ticket", price: "$520 / $485", note: "Park Hopper: $660 / $625. Multi-day tickets expire 13 days after first use." },
+    { item: "Children under 3", price: "Free", note: "No ticket or park reservation needed." },
+    { item: "2027 offer: 3-day / 4-day", price: "$340 / $384", note: "20% off, on sale Dec 1, 2026 through authorized sellers, for visits Jan 4 to May 27, 2027." },
+    { item: "Lightning Lane Multi Pass", price: "$35 a day", note: "Per person, bought ahead. $38 to $40 on the day. Includes ride photo downloads." },
+    { item: "Lightning Lane Single Pass", price: "$7 to $40 a ride", note: "Only for Rise of the Resistance and Radiator Springs Racers." },
+    { item: "Lightning Lane Premier Pass", price: "$300 to $450+", note: "Per person per day. Not sensible for a big family." },
+    { item: "Theme park parking", price: "$40 a day", note: "Per car. Disney hotel self-parking is $45 a night." },
+    { item: "Stroller rental in the park", price: "$18 a day", note: "$36 for two. It cannot leave the parks. Outside companies deliver to hotels for about $40 to $80 a trip." },
+    { item: "Wheelchair / scooter", price: "$15 / $60 a day", note: "Plus a $20 refundable deposit. First come, first served." },
+    { item: "Counter-service meal", price: "About $16", note: "Typical entree. Snacks about $6.50, table-service entrees about $31." },
+    { item: "Halloween party ticket", price: "$139 to $199", note: "Oogie Boogie Bash, 2026 prices. All 33 nights sold out." }
+  ],
+  benchmarks: [
+    { t: "A family of four", d: "One expert budget for four nights, three park days and flights: about $5,200 on a budget, $6,500 in the middle and $8,900 at the high end, at 2026 prices." },
+    { t: "Per person", d: "That works out to roughly $1,300 to $2,200 each." },
+    { t: "Our whole crew", d: "At the middle level, about 14 people comes to something like $23,000 today. Sharing rooms and a free toddler bring it down." },
+    { t: "The saving pace", d: "A $7,000 household goal is about $585 a month over 12 months, $390 over 18, or $290 over 24." }
+  ],
+  saving: [
+    { t: "Buy tickets before October", d: "Disneyland has raised prices in early October five years in a row. Tickets bought before the rise keep the old price." },
+    { t: "Watch for the kids' ticket deal", d: "In 2026 ages 3 to 9 paid $50 a day for one- to three-day tickets, valid May 22 to Sep 7. It was announced in early December and went on sale in January. Nothing is announced for 2027 yet." },
+    { t: "Use authorized sellers", d: "Get Away Today, Undercover Tourist and aRes Travel sell real Disney tickets, usually a few dollars under gate price and more during promotions such as adults at kids' prices. Never buy partly used tickets." },
+    { t: "Pay with discounted gift cards", d: "Target's Circle Card takes 5% off Disney gift cards. Sam's Club and BJ's sell them below face value in flash deals. They work for tickets bought from Disney, Disney hotels, and food and souvenirs at Disney-run spots." },
+    { t: "Travel on cheaper dates", d: "Mid-January to early February, late April to mid May, late August and September, and early-December weekdays. Sunday to Thursday hotel nights cost less." },
+    { t: "Book refundable, then re-price", d: "Hold a flexible rate early and check again monthly. Disney released hotel offers of 20 to 25% off in 2026, a few months before each season." },
+    { t: "Sleep where breakfast is free", d: "Residence Inn, SpringHill Suites, Homewood Suites, Hyatt House and Best Western Park Place Inn include breakfast. Suites with kitchens save even more." },
+    { t: "Bring food in", d: "Outside food and drinks are allowed in the parks: no glass, no alcohol, no loose ice. Counters hand out free ice water. Have groceries delivered to the hotel." },
+    { t: "Check warehouse bundles", d: "Costco's fall 2026 bundle was $329.99 for a 2-day Park Hopper, Multi Pass and a $60 dining card, at select California warehouses. These tend to come back." },
+    { t: "Use points for rooms and flights", d: "Hyatt, Marriott, Hilton and IHG all have hotels near the parks bookable with points. Southwest's Companion Pass can halve one household's airfare." },
+    { t: "Buy souvenirs before you go", d: "Disney shirts, ears and toys cost far less at home. Give each child a gift card as their whole souvenir budget. Pressed pennies and pin trading are cheap thrills." },
+    { t: "Skip what does not fit us", d: "Premier Pass, Park Hopper on every day, and Lightning Lane every day add up fast for 15 people. Pick the one or two days where they earn their keep." }
+  ],
+  savingPlan: [
+    { t: "Set the target", d: "Run the estimator above for your household, keep the 10% cushion, and treat the total as the goal." },
+    { t: "Automate it", d: "Open a separate savings account, ideally high-yield, and move a fixed amount on every payday. Paying cash from a trip fund means no bill follows you home." },
+    { t: "Know when the money is due", list: ["Refundable hotel rooms: usually nothing, or one night, until you arrive", "Disney packages: $200 deposit, balance 30 days before arrival", "Get Away Today layaway: $200 down including a non-refundable $99 fee, paid off about a week before travel (they advise 30 days so park reservations can be made)", "Flights: paid in full when booked", "Tickets: ideally before the October price rise"] },
+    { t: "Get the kids saving too", d: "A trip jar for chore money and spare change gives them their own souvenir fund and makes the countdown real." },
+    { t: "Protect what you have paid", list: ["Refundable bookings are the cheapest insurance: Disney rooms cancel free up to about 4 days out, packages up to 30 days", "Full travel insurance runs about 4 to 10% of the trip cost", "Cancel-for-any-reason add-ons pay back 50 to 75% and must be bought early", "Disney's own protection plan covers only the Disney-booked parts"] }
+  ],
+  moneyRules: [
+    { t: "Talk money first", d: "The adults agree on budgets and how the trip is paid for before anything is booked." },
+    { t: "Shared or personal", d: "Shared: lodging, vans, group meals, shirts. Personal: souvenirs, snacks, extras. Write the list down." },
+    { t: "If someone is treating, say what", d: "Grandparents often gift part of a trip like this. Being exact about which part avoids guesswork." },
+    { t: "One ledger", d: "One person tracks who paid for what, and everyone settles within a week of getting home." }
+  ],
+
+  /* ============ STAY & TRAVEL ============ */
+  stayLede: "The resort buses stopped running in 2026, so being able to walk back for naps matters more than ever. Hold something refundable early. We can always trade up later.",
+  lodgingPlans: [
+    { t: "A block of family rooms within a ten-minute walk", cost: "About $6,500 to $10,500", d: "Four refundable family rooms or suites at one hotel across the street, or two two-bedroom suites plus a room at a suite hotel. Each household gets its own door, and naps are a short walk away.",
+      pros: ["Walk back for naps and pool time", "Cancel or re-price any time", "Each household has its own space", "Grandparents get their own room"], cons: ["The group is spread over several rooms", "Parking adds $25 to $47 a car each night"] },
+    { t: "Disney villas on rented points", cost: "About $11,000 to $12,000 in low season", d: "Two two-bedroom villas at the Grand Californian or Disneyland Hotel, booked through a Disney Vacation Club points broker. On-site, with kitchens, washers and beds for 18.",
+      pros: ["Inside the resort, steps from the gates", "Kitchens and laundry", "Everyone in two big units"], cons: ["Paid up front and close to non-refundable", "Very few villas: ask 11 months ahead", "Peak dates can double the cost"] },
+    { t: "Disney hotel rooms", cost: "$13,000 to $20,000; Grand Californian $28,000+", d: "Four standard rooms at the Disneyland Hotel or Pixar Place. The Grand Californian has its own gate into California Adventure.",
+      pros: ["The full Disney bubble", "One free Lightning Lane ride per guest per stay", "Refundable until about 4 days out"], cons: ["Two to three times the price of across the street", "Early park entry for hotel guests ended in 2026", "Rooms sleep five at most"] },
+    { t: "One big rental house", cost: "About $4,000 to $6,700", d: "A permitted five- or six-bedroom house sleeping 14 to 16, usually a 10 to 15 minute drive away. The cheapest per person, with a kitchen and a living room for evenings together.",
+      pros: ["Lowest cost", "Everyone under one roof", "Full kitchen and laundry"], cons: ["A drive each way: $40 parking per car per day, or rideshares with car seats", "No quick trip back for August's nap", "Anaheim stopped issuing rental permits in 2016: ask for the permit number", "Stricter cancellation terms"] }
+  ],
+  hotels: [
+    { n: "Best Western Plus Park Place Inn", tag: "Closest walk", walk: "About 5 min", rooms: "Mini-suites sleep 6", perks: "Free breakfast", watch: "Sells out early. Rates swing from about $130 to $310." },
+    { n: "Tropicana Inn and Camelot Inn", tag: "Expert top pick", walk: "5 to 7 min", rooms: "Suites and connecting rooms", perks: "Pool; shops and food next door", watch: "Confirm which rooms sleep six and the parking fee when booking." },
+    { n: "Courtyard Anaheim Theme Park Entrance", tag: "Best for kids", walk: "8 to 10 min", rooms: "Every room has two queens and bunk beds, sleeps 6", perks: "Guests-only water park", watch: "Parking is pricey and breakfast is extra." },
+    { n: "Howard Johnson Anaheim", walk: "About 10 min", rooms: "Ask about family suites", perks: "Castaway Cove water playground", watch: "Some buildings are reported under renovation until June 2027. Parking about $25." },
+    { n: "Castle Inn and Suites", walk: "About 10 min", rooms: "Family suite sleeps 6", perks: "Pool; parking often included", watch: "Simple, older rooms." },
+    { n: "SpringHill Suites, 1801 S Harbor", walk: "10 to 15 min", rooms: "Suites sleep 5 to 7", perks: "Free hot breakfast", watch: "Parking about $40." },
+    { n: "Residence Inn at Anaheim Resort", tag: "Eight in one suite", walk: "15 to 20 min", rooms: "Two-bedroom suites sleep 7 or 8, with full kitchens", perks: "Free breakfast", watch: "The longest walk on this list for tired legs." },
+    { n: "Homewood Suites Convention Center", walk: "15 to 20 min", rooms: "Bunk family suites and two-bedroom, two-bath suites", perks: "Free breakfast, kitchens", watch: "Parking about $40." },
+    { n: "Element Anaheim Resort", tag: "Expert family favorite", walk: "A longer walk", rooms: "Family suites sleep 6, with kitchens", perks: "Free breakfast", watch: "Quiet side street; small pool." },
+    { n: "Desert Palms and Anaheim Desert Inn", walk: "About 10 min", rooms: "Two-bedroom suites for up to 10", perks: "Breakfast usually included", watch: "Older properties; confirm details." },
+    { n: "Westin Anaheim and JW Marriott", tag: "Off-site luxury", walk: "About 15 min", rooms: "JW has bunk-bed family suites", perks: "Resort pools", watch: "Priced close to the Disney hotels." },
+    { n: "Disneyland Hotel", tag: "On-site", walk: "10 to 15 min through Downtown Disney", rooms: "Rooms sleep 5; family suites", perks: "One free Lightning Lane ride each per stay; monorail pool", watch: "About $650 to $850 a night and up." },
+    { n: "Disney's Grand Californian", tag: "On-site", walk: "2 min to California Adventure", rooms: "Rooms sleep 5; villas sleep up to 12", perks: "Its own gate into California Adventure", watch: "About $1,100 a night and up." },
+    { n: "Pixar Place Hotel", tag: "On-site", walk: "About 10 min", rooms: "Rooms sleep 5", perks: "Rooftop pool", watch: "Its private park gate closed in January 2026." },
+    { n: "Great Wolf Lodge, Garden Grove", walk: "Not walkable", rooms: "Suites sleep 6 to 8", perks: "Indoor water park included", watch: "A ride each way, plus parking and a resort fee." }
+  ],
+  bookWindows: [
+    { t: "Disney hotels and packages", d: "Up to 499 days ahead, released a calendar year at a time.", when: "2027 open now; 2028 about late Aug 2027" },
+    { t: "Hyatt hotels", d: "About 13 months ahead.", off: 395, when: "About 13 months ahead" },
+    { t: "Hilton hotels, including Homewood Suites", d: "365 days ahead.", off: 365, when: "365 days ahead" },
+    { t: "Marriott hotels: Courtyard, Residence Inn, SpringHill", d: "About 350 days ahead.", off: 350, when: "About 350 days ahead" },
+    { t: "Best Western and independent hotels", d: "About 350 days ahead. Small independents vary, so call.", off: 350, when: "About 350 days ahead" },
+    { t: "Rented Disney villa points", d: "11 months ahead through an owner at that resort; 7 months for everyone else.", off: 335, when: "11 months ahead" },
+    { t: "Rental houses", d: "Each host sets their own calendar. Some are open two years out.", when: "Varies by host" },
+    { t: "Flights", d: "Most airlines open about 330 days ahead. Southwest opens later, in batches.", off: 330, when: "About 11 months ahead" },
+    { t: "Park tickets", d: "On sale now for 2027. Reports say current tickets are valid through the end of 2027; tickets valid in 2028 are not on sale yet.", when: "Any time; before October" },
+    { t: "Park reservations", d: "Sources differ between 180 and 240 days. Check the live calendar on disneyland.com.", off: 180, when: "6 to 8 months ahead" },
+    { t: "Dining, makeovers and lightsaber builds", d: "60 days ahead, opening at 6 a.m. Pacific.", off: 60, when: "60 days ahead" },
+    { t: "Disney package balance due", d: "Full refund if cancelled before this date.", off: 30, when: "30 days ahead" }
+  ],
+  airports: [
+    { code: "SNA", name: "John Wayne, Orange County", drive: "20 to 25 min", ride: "About $30 to $50", note: "The easy choice. Small, close, quick to get out of." },
+    { code: "LGB", name: "Long Beach", drive: "25 to 35 min", ride: "About $40 to $60", note: "Small and calm, with fewer flights." },
+    { code: "LAX", name: "Los Angeles", drive: "35 to 90 min", ride: "About $55 to $100", note: "The most flights and often the lowest fares. The traffic can wreck a toddler's day." },
+    { code: "ONT", name: "Ontario", drive: "40 to 55 min", ride: "Varies", note: "A fallback if fares are much lower." }
+  ],
+  transport: [
+    { t: "The resort buses are gone", d: "The ART buses that linked hotels to the parks stopped on Mar 31, 2026. A few hotels run their own shuttles and Disney still runs its Toy Story parking lot shuttle. For most hotels it is now walk or rideshare." },
+    { t: "Car seats", d: "Uber's car-seat option offers one seat and is not confirmed in Orange County, and shuttle companies do not supply seats. With several little ones, bring your own (airlines check them free) or rent a minivan." },
+    { t: "Vans from the airport", d: "A private van for up to nine from LAX runs about $209 each way with 48 hours' notice. Shared shuttles from Orange County are about $36 an adult." },
+    { t: "Driving and parking", d: "Disney's parking structures are $40 a car per day. Hotels near the parks charge about $25 to $47 a night. From a rental house, that adds up across several cars." },
+    { t: "Flying with August", d: "On US airlines a child under 2 can fly free on a lap; bring proof of age. Car seats and strollers check free, and a stroller can be gate-checked." },
+    { t: "By train", d: "Amtrak's Pacific Surfliner and Metrolink stop at Anaheim's ARTIC station, about three miles from the parks. It is a rideshare from there." }
+  ],
+
+  /* ============ PARKS ============ */
+  parksLede: "Two parks sit a two-minute walk apart. Most of the classic rides have no height rule at all, which is why Disneyland works so well with a toddler in tow.",
+  rides: [
+    { p: "DL", land: "Main Street", n: "Disneyland Railroad", h: 0, type: "Gentle train", ll: "", note: "A full loop is a good rest or stroller-free nap. Fold strollers to board." },
+    { p: "DL", land: "Main Street", n: "Main Street Vehicles", h: 0, type: "Gentle ride", ll: "", note: "Horse-drawn streetcar and old-time cars, mostly in the morning." },
+    { p: "DL", land: "Main Street", n: "Walt Disney: A Magical Life", h: 0, type: "Theater show", ll: "", note: "Shares the Opera House with Great Moments with Mr. Lincoln. Cool and seated." },
+    { p: "DL", land: "Adventureland", n: "Jungle Cruise", h: 0, type: "Gentle boat", ll: "" },
+    { p: "DL", land: "Adventureland", n: "Enchanted Tiki Room", h: 0, type: "Show", ll: "", note: "Air-conditioned and seated." },
+    { p: "DL", land: "Adventureland", n: "Adventureland Treehouse", h: 0, type: "Climb-through", ll: "", note: "Lots of stairs." },
+    { p: "DL", land: "Adventureland", n: "Indiana Jones Adventure", h: 46, type: "Rough thrill ride", ll: "Multi Pass · single rider" },
+    { p: "DL", land: "New Orleans Square", n: "Pirates of the Caribbean", h: 0, type: "Dark boat ride, two small drops", ll: "" },
+    { p: "DL", land: "New Orleans Square", n: "Haunted Mansion", h: 0, type: "Spooky dark ride", ll: "Multi Pass", note: "Holiday version from about September to early January, with short closures to switch over." },
+    { p: "DL", land: "Bayou Country", n: "Tiana's Bayou Adventure", h: 40, type: "Log flume, big drop, wet", ll: "Multi Pass" },
+    { p: "DL", land: "Bayou Country", n: "The Many Adventures of Winnie the Pooh", h: 0, type: "Dark ride", ll: "" },
+    { p: "DL", land: "Bayou Country", n: "Davy Crockett's Explorer Canoes", h: 0, type: "Paddle-it-yourself canoe", ll: "", note: "Select days, daylight only." },
+    { p: "DL", land: "Frontierland", n: "Big Thunder Mountain Railroad", h: 40, type: "Coaster", ll: "Multi Pass" },
+    { p: "DL", land: "Frontierland", n: "Mark Twain Riverboat", h: 0, type: "Gentle boat", ll: "", note: "Room to stand, sit and nap a baby." },
+    { p: "DL", land: "Frontierland", n: "Pirate's Lair on Tom Sawyer Island", h: 0, type: "Explore-and-play island", ll: "", note: "The best place to burn off energy. Closes at dusk." },
+    { p: "DL", land: "Galaxy's Edge", n: "Star Wars: Rise of the Resistance", h: 40, type: "Trackless ride with a drop", ll: "Single Pass" },
+    { p: "DL", land: "Galaxy's Edge", n: "Millennium Falcon: Smugglers Run", h: 38, type: "Simulator", ll: "Multi Pass · single rider" },
+    { p: "DL", land: "Fantasyland", n: "Peter Pan's Flight", h: 0, type: "Dark ride", ll: "", note: "The longest wait in Fantasyland. Ride it first." },
+    { p: "DL", land: "Fantasyland", n: "Alice in Wonderland", h: 0, type: "Dark ride", ll: "" },
+    { p: "DL", land: "Fantasyland", n: "Snow White's Enchanted Wish", h: 0, type: "Dark ride", ll: "", note: "Closes Jan 4, 2027 for refurbishment; no reopening date yet." },
+    { p: "DL", land: "Fantasyland", n: "Pinocchio's Daring Journey", h: 0, type: "Dark ride", ll: "", note: "Closes Jan 4, 2027 for refurbishment; no reopening date yet." },
+    { p: "DL", land: "Fantasyland", n: "Mr. Toad's Wild Ride", h: 0, type: "Dark ride, a few scary bits", ll: "" },
+    { p: "DL", land: "Fantasyland", n: "Dumbo the Flying Elephant", h: 0, type: "Spinner", ll: "" },
+    { p: "DL", land: "Fantasyland", n: "King Arthur Carrousel", h: 0, type: "Carousel", ll: "" },
+    { p: "DL", land: "Fantasyland", n: "Casey Jr. Circus Train", h: 0, type: "Gentle train", ll: "" },
+    { p: "DL", land: "Fantasyland", n: "Storybook Land Canal Boats", h: 0, type: "Gentle boat", ll: "" },
+    { p: "DL", land: "Fantasyland", n: "Mad Tea Party", h: 0, type: "Spinner", ll: "", note: "Closed for refurbishment since September 2026. Check whether it has reopened." },
+    { p: "DL", land: "Fantasyland", n: "it's a small world", h: 0, type: "Gentle boat", ll: "Multi Pass", note: "Holiday version mid-November to early January, with closures either side." },
+    { p: "DL", land: "Fantasyland", n: "Matterhorn Bobsleds", h: 42, type: "Rough coaster", ll: "Multi Pass · single rider" },
+    { p: "DL", land: "Fantasyland", n: "Sleeping Beauty Castle Walkthrough", h: 0, type: "Walk-through", ll: "", note: "Narrow stairs." },
+    { p: "DL", land: "Fantasyland", n: "Bluey's Best Day Ever!", h: 0, type: "Interactive stage show", ll: "", note: "At the Fantasyland Theatre since March 2026." },
+    { p: "DL", land: "Toontown", n: "Mickey and Minnie's Runaway Railway", h: 0, type: "Trackless dark ride", ll: "Multi Pass" },
+    { p: "DL", land: "Toontown", n: "Roger Rabbit's Car Toon Spin", h: 0, type: "Spinning dark ride", ll: "Multi Pass" },
+    { p: "DL", land: "Toontown", n: "Chip 'n' Dale's GADGETcoaster", h: 35, type: "Kiddie coaster", ll: "" },
+    { p: "DL", land: "Toontown", n: "Mickey's House and Minnie's House", h: 0, type: "Walk-through and character meeting", ll: "" },
+    { p: "DL", land: "Toontown", n: "Goofy's How-to-Play Yard and Donald's Duck Pond", h: 0, type: "Play areas, some water", ll: "", note: "The best under-five play space. Bring spare clothes." },
+    { p: "DL", land: "Tomorrowland", n: "Space Mountain", h: 40, type: "Coaster in the dark", ll: "Multi Pass · single rider" },
+    { p: "DL", land: "Tomorrowland", n: "Star Tours", h: 40, type: "Simulator", ll: "Multi Pass" },
+    { p: "DL", land: "Tomorrowland", n: "Buzz Lightyear Astro Blasters", h: 0, type: "Shooting dark ride", ll: "Multi Pass" },
+    { p: "DL", land: "Tomorrowland", n: "Astro Orbitor", h: 0, type: "Spinner", ll: "" },
+    { p: "DL", land: "Tomorrowland", n: "Autopia", h: 32, type: "Drive-it-yourself cars", ll: "Multi Pass", note: "54 inches to drive alone. Expected to close in early 2027 for conversion to electric cars." },
+    { p: "DL", land: "Tomorrowland", n: "Finding Nemo Submarine Voyage", h: 0, type: "Enclosed submarine", ll: "", note: "Dark and snug inside." },
+    { p: "DL", land: "Tomorrowland", n: "Disneyland Monorail", h: 0, type: "Train to Downtown Disney", ll: "" },
+
+    { p: "DCA", land: "Hollywood Land", n: "Monsters, Inc. Mike and Sulley to the Rescue!", h: 0, type: "Dark ride", ll: "Multi Pass", note: "Closes for good during 2027; date not announced." },
+    { p: "DCA", land: "Hollywood Land", n: "Mickey's PhilharMagic", h: 0, type: "3D film", ll: "" },
+    { p: "DCA", land: "Hollywood Land", n: "Animation Academy and Turtle Talk with Crush", h: 0, type: "Drawing class and interactive show", ll: "", note: "The cool, dark Animation lobby is a good baby break." },
+    { p: "DCA", land: "Avengers Campus", n: "Guardians of the Galaxy: Mission BREAKOUT!", h: 40, type: "Drop tower", ll: "Multi Pass" },
+    { p: "DCA", land: "Avengers Campus", n: "WEB SLINGERS: A Spider-Man Adventure", h: 0, type: "3D interactive ride", ll: "Multi Pass · single rider" },
+    { p: "DCA", land: "Cars Land", n: "Radiator Springs Racers", h: 40, type: "Dark ride, then a fast race", ll: "Single Pass · single rider" },
+    { p: "DCA", land: "Cars Land", n: "Luigi's Rollickin' Roadsters", h: 32, type: "Dancing cars", ll: "" },
+    { p: "DCA", land: "Cars Land", n: "Mater's Junkyard Jamboree", h: 32, type: "Whip spinner", ll: "" },
+    { p: "DCA", land: "San Fransokyo Square", n: "The Bakery Tour", h: 0, type: "Walk-through with a bread sample", ll: "" },
+    { p: "DCA", land: "Pixar Pier", n: "Incredicoaster", h: 48, type: "Launch coaster with a loop", ll: "Multi Pass · single rider" },
+    { p: "DCA", land: "Pixar Pier", n: "Toy Story Midway Mania!", h: 0, type: "4D shooting game", ll: "Multi Pass" },
+    { p: "DCA", land: "Pixar Pier", n: "Pixar Pal-A-Round", h: 0, type: "Ferris wheel", ll: "", note: "Choose the non-swinging gondolas with a baby." },
+    { p: "DCA", land: "Pixar Pier", n: "Inside Out Emotional Whirlwind", h: 0, type: "Gentle spinner", ll: "" },
+    { p: "DCA", land: "Pixar Pier", n: "Jessie's Critter Carousel", h: 0, type: "Carousel", ll: "" },
+    { p: "DCA", land: "Paradise Gardens", n: "Goofy's Sky School", h: 42, type: "Wild-mouse coaster", ll: "Multi Pass · single rider" },
+    { p: "DCA", land: "Paradise Gardens", n: "Silly Symphony Swings", h: 40, type: "Wave swings", ll: "", note: "48 inches for a single swing." },
+    { p: "DCA", land: "Paradise Gardens", n: "Jumpin' Jellyfish", h: 40, type: "Mini drop", ll: "" },
+    { p: "DCA", land: "Paradise Gardens", n: "Golden Zephyr", h: 0, type: "Gentle swinging rockets", ll: "", note: "Closes when it is windy." },
+    { p: "DCA", land: "Paradise Gardens", n: "The Little Mermaid: Ariel's Undersea Adventure", h: 0, type: "Dark ride", ll: "Multi Pass" },
+    { p: "DCA", land: "Grizzly Peak", n: "Soarin' Across America", h: 40, type: "Flight simulator", ll: "Multi Pass", note: "New film since July 2026." },
+    { p: "DCA", land: "Grizzly Peak", n: "Grizzly River Run", h: 42, type: "Raft ride, soaking", ll: "Multi Pass · single rider", note: "Closed every winter, roughly January to March." },
+    { p: "DCA", land: "Grizzly Peak", n: "Redwood Creek Challenge Trail", h: 0, type: "Play area", ll: "", note: "Rock wall and zip line need 42 inches." }
+  ],
+  rideNotes: [
+    { t: "Rider Switch: nobody misses a ride because of the baby", d: "The whole group goes to the cast member at the entrance. One group rides while an adult waits with August. Then the waiting adult and up to two others go through the Lightning Lane entrance without queuing again. It works on every ride with a height rule, and the kids who ride twice will not complain." },
+    { t: "Single rider lines", d: "Teens and adults willing to sit apart can skip most of the wait on Indiana Jones, Matterhorn, Space Mountain, Smugglers Run, Radiator Springs Racers, Incredicoaster, Goofy's Sky School, Grizzly River Run and WEB SLINGERS. These lines open and close without notice." },
+    { t: "Closures to plan around", list: ["January to March has the most rides down", "Haunted Mansion closes briefly in late summer and in January to change over its holiday version", "small world closes around October and again in January", "Grizzly River Run closes each winter (Jan 5 to Mar 27 in 2026)", "The official list firms up four to six weeks ahead"] },
+    { t: "How height checks work", d: "Cast members measure at the ride entrance, shoes on, every time. A child who is close may pass at one ride and not at the next, so never promise a ride ahead of time." },
+    { t: "Virtual queues", d: "No ride uses one at the moment. Rise of the Resistance is a normal line or a paid Single Pass. World of Color uses a free virtual queue for its viewing area." }
+  ],
+  little: [
+    { t: "Baby Care Centers", d: "One in each park: at the end of Main Street next to First Aid, and in San Fransokyo Square by the Ghirardelli shop. Nursing rooms, changing tables, toddler toilets, highchairs, a kitchen with a bottle warmer and microwave, and diapers, formula and baby food for sale." },
+    { t: "Strollers", d: "Bring or rent one even for kids who have outgrown theirs at home. The limit is 31 by 52 inches and wagons are not allowed. Outside rental companies deliver to hotels; Disney's own rentals cannot leave the parks." },
+    { t: "Naps", d: "A reclined stroller in a quiet corner, a loop on the Disneyland Railroad, the Mark Twain Riverboat, or the cool Animation building. Best of all is a midday break back at the hotel, which is why walking distance matters." },
+    { t: "First rides for August", d: "small world, Winnie the Pooh, the Railroad, Jungle Cruise, Casey Jr., Storybook Land, both carousels, Dumbo, Buzz Lightyear, The Little Mermaid and Toy Story Midway Mania. A baby can ride anything without a height rule on a lap." },
+    { t: "Feeding", d: "Outside food is fine, and baby food in small glass jars is the one exception to the no-glass rule. Any counter will give you hot water or ice water for free. Nursing is welcome anywhere." },
+    { t: "Loud and dark", d: "Bring ear protection for fireworks and Fantasmic!. Pirates, Haunted Mansion and the Nemo submarines are dark; Mr. Toad and Snow White startle some little ones." },
+    { t: "Places to roam", d: "Toontown's play yards and splash pond, Tom Sawyer Island and the Redwood Creek Challenge Trail let toddlers out of the stroller safely." },
+    { t: "Free until three", d: "Children under 3 need no ticket and no park reservation, and they can sit on a lap at buffets." }
+  ],
+  kids: [
+    { t: "Meeting characters", d: "Mickey and Minnie at their Toontown houses, princesses at Royal Hall, Tinker Bell at Pixie Hollow, superheroes in Avengers Campus and the Cars characters in Cars Land. The app lists times." },
+    { t: "Bluey's Best Day Ever!", d: "A new interactive show at the Fantasyland Theatre. Check the app for showtimes and dark days." },
+    { t: "Makeovers and builds", d: "Bibbidi Bobbidi Boutique does princess and knight makeovers for ages 3 to 12. In Galaxy's Edge kids can build a droid, or a lightsaber at Savi's Workshop. All book 60 days ahead, and prices run from about $100 into the hundreds, so check current rates." },
+    { t: "Free fun", d: "Earn Wilderness Explorer badges at Redwood Creek, learn to draw a character at Animation Academy, play the Datapad game in Galaxy's Edge, hunt hidden Mickeys, and pick up a free First Visit or Happy Birthday button at City Hall." },
+    { t: "Pin trading", d: "A starter set bought at home turns every cast member lanyard into a treasure hunt. There is a kids-only trading spot." },
+    { t: "Burning energy", d: "Tom Sawyer Island, Toontown, the Redwood Creek rope bridges and the hotel pool. Plan one of them into every day." },
+    { t: "Star Wars and superheroes", d: "Smugglers Run needs 38 inches and lets kids pilot the Millennium Falcon. Spider-Man swings over Avengers Campus several times a day." }
+  ],
+  grand: [
+    { t: "Scooters and wheelchairs", d: "The parks rent wheelchairs for $15 and scooters for $60 a day, first come, first served. Renting from an outside company for the whole trip costs less and comes to the hotel." },
+    { t: "A gentler pace", d: "Mornings in the park, a long midday break, back for the evening. Nobody has to do every day: a pool day in the middle is a gift." },
+    { t: "Rides everyone can share", d: "The Railroad, Mark Twain, Jungle Cruise, small world, Pirates, Haunted Mansion, the Tiki Room, Soarin' and The Little Mermaid are all gentle and seated." },
+    { t: "Shows worth sitting for", d: "Walt Disney: A Magical Life, the Tiki Room, Mickey's PhilharMagic and Turtle Talk are air-conditioned with real seats." },
+    { t: "Help with waiting", d: "Disney's Disability Access Service is for guests who cannot wait in a standard queue because of a developmental disability. Mobility needs are handled with accessible queues instead. Ask Guest Relations for current rules." },
+    { t: "A room of their own", d: "Every guide to multi-generation trips says the same thing: grandparents get their own room and their own bedtime." },
+    { t: "The best seat", d: "Grandparents holding August is what makes Rider Switch work, and often it is the memory they came for." }
+  ],
+  dining: [
+    { n: "Goofy's Kitchen", where: "Disneyland Hotel", kind: "Character buffet", price: "About $70 adult (last known)", note: "No park ticket needed, so it suits an arrival day." },
+    { n: "Storytellers Cafe", where: "Grand Californian", kind: "Mickey's Tales of Adventure character breakfast", price: "About $60 adult (last known)", note: "Calm room, good with little ones. Its World of Color dinner package was $86 adult, $53 child in 2026." },
+    { n: "Plaza Inn", where: "Disneyland Park", kind: "Minnie and Friends character breakfast", price: "About $60 adult (last known)", note: "Was paused for refurbishment during 2026. Confirm it is running." },
+    { n: "Napa Rose", where: "Grand Californian", kind: "Princess breakfast", price: "$140 and up (last known)", note: "The big splurge. Check that it is still offered." },
+    { n: "Blue Bayou or River Belle Terrace", where: "Disneyland Park", kind: "Fantasmic! dining package", price: "Varies", note: "A meal plus a reserved spot for the show." },
+    { n: "Rancho del Zocalo", where: "Disneyland Park", kind: "Counter service, Mexican", price: "About $16 to $20", note: "Lots of shaded tables for a big group." },
+    { n: "Plaza Inn fried chicken", where: "Disneyland Park", kind: "Counter service", price: "About $20", note: "Big portions that share well." },
+    { n: "Flo's V8 Cafe and Pym Test Kitchen", where: "California Adventure", kind: "Counter service", price: "About $15 to $20", note: "Roomy seating. The San Fransokyo food court works for picky eaters." }
+  ],
+  foodTips: [
+    { t: "Order from your phone", d: "Mobile order in the Disneyland app and pick a pickup window early in the day. The lunch slots fill up." },
+    { t: "Seating a big party", d: "For more than about ten, phone Disney Dining, or book two tables at the same time and ask to sit near each other. It is not guaranteed." },
+    { t: "Bring your own", d: "Snacks, sandwiches and refillable bottles are welcome. No glass, no alcohol, no loose ice: use ice packs." },
+    { t: "Allergies", d: "Allergy-friendly menus are available everywhere, and a chef will come to the table at sit-down restaurants." },
+    { t: "What a day of food costs", d: "Counter service only is about $48 an adult. A mix with one sit-down meal is about $63 before tax and tip. Breakfast in the room brings it to $35 to $50." },
+    { t: "Share the big ones", d: "Kids' meals are filling, and many adult plates split easily between two children." }
+  ],
+  strategy: [
+    { t: "How many days", d: "Three park days at minimum: two in Disneyland Park and one in California Adventure. With a toddler and grandparents, four or five shorter days beat three long ones." },
+    { t: "Be early", d: "Reach the security line 45 to 60 minutes before opening. The first two hours are worth the whole afternoon. Disney hotel guests no longer get a head start." },
+    { t: "Take the midday break", d: "Leave around noon, nap and swim, come back about four for dinner, the parade and fireworks." },
+    { t: "One anchor a day", d: "Pick one thing all of us do together each day. Around it, split by height and energy and regroup at meals." },
+    { t: "A realistic pace", d: "A group of 14 manages seven to ten attractions a day, ten to thirteen with Lightning Lane. Plan for that and it feels like winning." },
+    { t: "Disneyland Park first hour", d: "Peter Pan first, then the other Fantasyland rides, then Toontown. The thrill-seekers peel off to Space Mountain or Indiana Jones and meet up for a snack." },
+    { t: "California Adventure first hour", d: "Tall kids go straight to Radiator Springs Racers while the little ones ride Luigi's and Mater's next door. Then Toy Story Midway Mania or WEB SLINGERS." },
+    { t: "One app, everyone linked", d: "Link every ticket to one Disney account, or one per household. Whoever holds the phone can book rides and order food for the group." }
+  ],
+  llGuide: [
+    { t: "Multi Pass", d: "$35 a person per day when bought ahead, a few dollars more on the day. Once inside the park you book one ride at a time in the app and skip most of the line. It covers about 22 rides across both parks and includes downloads of ride photos." },
+    { t: "Single Pass", d: "A separate one-ride purchase for the two rides Multi Pass leaves out: Rise of the Resistance and Radiator Springs Racers. Prices move between about $7 and $40." },
+    { t: "Premier Pass", d: "One skip-the-line entry at every Lightning Lane ride for roughly $300 to $450 or more a person. For our group that is thousands of dollars a day. Skip it." },
+    { t: "Is it worth it for us?", d: "Multi Pass for 15 ticketed people is about $525 a day. It pays off on a Disneyland Park day for kids tall enough for the headliners, and much less for little ones, because most small-child rides have no Lightning Lane at all. Buy it for one day, pair it with Rider Switch, and see whether we want a second." },
+    { t: "The Disney hotel perk", d: "Each guest aged 3 and up staying at a Disney hotel gets one free Multi Pass ride per stay." }
+  ],
+  sampleDays: [
+    { t: "Disneyland Park, all of us", d: "The classic first day.", steps: [["7:15", "At the gates, 45 minutes before opening"], ["8:00", "Peter Pan's Flight, then Dumbo, the carousel and Casey Jr."], ["9:30", "Toontown: Runaway Railway, then the play yards for August"], ["11:00", "Tall kids to Big Thunder with Rider Switch; little ones on small world"], ["12:00", "Lunch, then back to the hotel for naps and the pool"], ["4:00", "Jungle Cruise, Pirates of the Caribbean, Haunted Mansion"], ["6:00", "Dinner at a counter spot with big tables"], ["8:00", "Claim a fireworks spot by small world; ear protection on"]] },
+    { t: "California Adventure day", d: "Cars, Pixar and superheroes.", steps: [["7:15", "At the gates"], ["8:00", "Radiator Springs Racers for the tall kids; Luigi's and Mater's for the rest"], ["9:30", "Toy Story Midway Mania, the carousel and the Ferris wheel"], ["11:00", "WEB SLINGERS and the heroes in Avengers Campus"], ["12:30", "Lunch, then the midday break"], ["4:00", "The Little Mermaid, Soarin', Redwood Creek Challenge Trail"], ["6:30", "Dinner"], ["9:00", "World of Color: join the free virtual queue for a viewing spot"]] },
+    { t: "An easy day for tired legs", d: "Slot one in mid-trip.", steps: [["9:00", "Slow breakfast, then a character meal or the Bluey show"], ["11:00", "A full loop on the Disneyland Railroad"], ["12:00", "Mark Twain Riverboat and the Tiki Room"], ["1:30", "Hotel pool for the afternoon"], ["6:00", "Dinner and a stroll through Downtown Disney"]] },
+    { t: "Arrival day", d: "No park ticket needed.", steps: [["Afternoon", "Check in and unpack the grocery delivery"], ["4:00", "Pool time to shake off the travel"], ["5:30", "Goofy's Kitchen or dinner in Downtown Disney"], ["7:30", "Early night. Tomorrow starts at 6:30."]] }
+  ],
+  entertainment: [
+    { t: "Fireworks", d: "Friday to Sunday for most of the year, and every night in summer, spring break and the holidays. A refreshed Remember... Dreams Come True returns in February 2027." },
+    { t: "Parades", d: "Magic Happens returns for summer 2027. A Christmas Fantasy runs twice a day in the holiday season. Be in place about 30 minutes ahead." },
+    { t: "Fantasmic!", d: "Usually two shows a night on the Rivers of America. A dining package buys a reserved spot." },
+    { t: "World of Color", d: "The water-and-light show at California Adventure. The original version returns in February 2027." },
+    { t: "Watching with little ones", d: "The small world end of the park and the riverfront are less packed than the castle hub for fireworks. Bring snacks and ear protection, and let August sleep through it." }
+  ],
+
+  /* ============ CREW ============ */
+  roles: [
+    { id: "captain", t: "Trip captain", d: "Keeps the plan, runs the check-ins and breaks ties." },
+    { id: "money", t: "Treasurer", d: "Tracks shared costs and who has paid." },
+    { id: "lodging", t: "Lodging lead", d: "Books the rooms and re-checks prices each month." },
+    { id: "tickets", t: "Tickets and app lead", d: "Buys tickets, makes park reservations, links everyone in the app and runs Lightning Lane on the day." },
+    { id: "dining", t: "Dining lead", d: "At the keyboard at 6 a.m. Pacific, 60 days out. Handles mobile orders in the park." },
+    { id: "travel", t: "Travel lead", d: "Flights, vans, car seats and arrival times." },
+    { id: "gear", t: "Gear and snacks lead", d: "Strollers, shirts, ponchos and the snack bag." },
+    { id: "photo", t: "Photo lead", d: "Plans the group photo and runs the shared album." },
+    { id: "kids", t: "Kid cruise director", d: "Runs the countdown and movie nights. A good job for an older grandchild." }
+  ],
+  meetings: [
+    { t: "How often", d: "Once a month until six months out, every two weeks after that, and weekly in the last month. Twenty minutes is plenty." },
+    { t: "The agenda", d: "What got done. What needs deciding today. A money check. Who does what before next time." },
+    { t: "Afterwards", d: "Post a short update on the HQ page so nobody has to scroll back through a group chat." },
+    { t: "The first one", d: "Share this site, pick the two best windows, agree budgets and hand out jobs." }
+  ],
+  groupRules: [
+    { t: "One anchor a day", d: "One thing all of us do together each day. Everything else is optional." },
+    { t: "Everyone picks one must-do", d: "Each person, grandparents and kids alike, names one thing. All of those go in the plan first." },
+    { t: "Split up on purpose", d: "By height, by energy, by interest. Nobody needs to feel guilty about it." },
+    { t: "Always a time and a place", d: "Never part without agreeing where and when to meet." },
+    { t: "Naps come first", d: "A rested toddler keeps the whole day pleasant. Build the day around the nap." },
+    { t: "The captain breaks ties", d: "When the group cannot decide in two minutes, the captain picks and we move." }
+  ],
+  hype: [
+    { t: "A countdown you can see", d: "A paper chain or a number board on the fridge. Tear one link off each day." },
+    { t: "Movie nights matched to rides", d: "Peter Pan, Dumbo, Alice in Wonderland, Winnie the Pooh, The Princess and the Frog, Cars, Toy Story, Monsters, Inc., The Little Mermaid, The Incredibles and Star Wars all have a ride waiting." },
+    { t: "Measure day", d: "Once a month, measure the kids against the ride chart on the Parks page and see what has unlocked." },
+    { t: "Each kid owns a land", d: "Every grandchild researches one land or ride and presents it at a family check-in." },
+    { t: "The trip jar", d: "Chore money and spare change go in. On the trip it becomes their souvenir budget." },
+    { t: "Practice walks", d: "Weekend walks build stamina and break in the shoes. Aim for a few miles by the month before." }
+  ],
+
+  /* ============ TRIP DAYS ============ */
+  dayOf: ["Photo of each child in today's outfit", "A phone number on every child: wristband, tag or temporary tattoo", "Tickets and reservations open in the Disneyland app", "Phones charged and power banks packed", "Sunscreen on, hats and layers in the bag", "Water bottles filled and snacks packed", "Stroller, rain cover and baby bag checked", "Medicines and allergy items packed", "Meeting spot and time agreed", "Today's anchor and first ride confirmed"],
+  packing: [
+    { cat: "The park bag", items: ["Refillable water bottles", "Snacks", "Two power banks and cables", "Sunscreen and hats", "A light jacket or hoodie each: evenings are cool even in summer", "Zip bags and spare clothes for the water rides", "Blister plasters and a small first-aid kit", "Hand wipes", "ID, cards and Disney gift cards"] },
+    { cat: "For August", items: ["Stroller with a name tag (31 by 52 inches at most; no wagons)", "Clip-on fan and sunshade", "Stroller rain cover", "Baby carrier", "Diapers and wipes for the day", "Formula, baby food and bottles", "Ear protection for fireworks", "A change of clothes", "A favorite blanket or toy"] },
+    { cat: "For the kids", items: ["Broken-in walking shoes", "Autograph book and a fat pen", "Ear protection", "Lanyard and trading pins", "Souvenir gift card", "Poncho", "Swimsuit and goggles for the hotel pool"] },
+    { cat: "For the grown-ups", items: ["Two pairs of walking shoes", "Medications", "A zip pocket or lanyard for the phone", "Offline copies of confirmations", "Insurance details", "Matching trip shirts"] },
+    { cat: "By season", items: ["November to March: ponchos, warm layers, a blanket for night shows", "June to September: cooling towels, a misting fan, extra sunscreen"] },
+    { cat: "Before leaving home", items: ["Disneyland app installed and signed in", "Tickets linked and park reservations confirmed", "Dining confirmations saved", "Car seats or van confirmed", "Grocery order placed", "REAL ID or passport for every adult flying"] }
+  ],
+  safety: [
+    { t: "If a child gets separated", d: "Cast members take lost children to the Baby Care Center in each park. Teach the kids to stop, stay put and look for someone wearing a name tag." },
+    { t: "Every morning", d: "Take a photo of each child and put a phone number on them. Matching bright shirts make head counts fast." },
+    { t: "Meeting spots", d: "Disneyland Park: the benches by the Baby Care Center at the end of Main Street, or the Mark Twain dock. California Adventure: the Carthay Circle fountain." },
+    { t: "First Aid", d: "Next to the Baby Care Center on Main Street, and near the Chamber of Commerce at the front of California Adventure. Nurses are on duty." },
+    { t: "Heat and rest", d: "Water at every stop, shade at midday, and nobody skips the break." },
+    { t: "What security turns away", d: "Glass, selfie sticks, wagons, and bags bigger than 24 by 15 by 18 inches. You can leave the park and come back the same day." }
+  ],
+
+  /* ============ SOURCES ============ */
+  sources: [
+    { sec: "when", t: "Disney Tourist Blog: best and worst weeks", u: "https://www.disneytouristblog.com/best-worst-weeks-disneyland-california-adventure-crowd-calendar/" },
+    { sec: "when", t: "Disney Tourist Blog: cheapest dates", u: "https://www.disneytouristblog.com/cheapest-dates-disneyland/" },
+    { sec: "when", t: "Thrill-Data crowd calendar", u: "https://www.thrill-data.com/trip-planning/crowd-calendar/disneyland" },
+    { sec: "when", t: "Disney Food Blog: quiet weeks in 2027", u: "https://www.disneyfoodblog.com/2026/08/04/10-weeks-when-disneyland-will-be-empty-in-2027/" },
+    { sec: "when", t: "Undercover Tourist: best time to visit", u: "https://www.undercovertourist.com/blog/best-time-visit-disneyland/" },
+    { sec: "when", t: "Disney Parks Blog: After Dark 2027 dates", u: "https://disneyparksblog.com/dlr/dates-and-details-for-disneyland-after-dark-events/" },
+    { sec: "when", t: "IOC: LA28 dates", u: "https://olympics.com/ioc/news/la28-countdown-begins-as-olympic-games-dates-confirmed-for-14-to-30-july" },
+    { sec: "when", t: "Disney Tourist Blog: what is next for Disneyland", u: "https://www.disneytouristblog.com/new-next-disneyland-california-adventure/" },
+    { sec: "when", t: "Disney Tourist Blog: refurbishment calendar", u: "https://www.disneytouristblog.com/disneyland-refurbishment-calendar/" },
+    { sec: "when", t: "KTLA: 2027 entertainment line-up", u: "https://ktla.com/news/disneyland-2027-entertainment-lineup/" },
+    { sec: "plan", t: "Undercover Tourist: park reservations", u: "https://www.undercovertourist.com/blog/disneyland-park-reservations/" },
+    { sec: "plan", t: "Undercover Tourist: dining reservations", u: "https://www.undercovertourist.com/blog/disneyland-dining-reservations/" },
+    { sec: "plan", t: "WDWNT: 2027 booking dates", u: "https://wdwnt.com/2026/08/booking-date-revealed-for-2027-disneyland-resort-vacations/" },
+    { sec: "plan", t: "Disney package terms", u: "https://disneyland.disney.go.com/vacation-package-terms-conditions/" },
+    { sec: "money", t: "MiceChat: ticket guide and price increase", u: "https://www.micechat.com/336395-disneyland-ticket-guide-price-increase/" },
+    { sec: "money", t: "Mickey Visit: October 2026 prices", u: "https://mickeyvisit.com/disney-tickets-price-increases-announced-october-6-2026/" },
+    { sec: "money", t: "Mouse Hacking: what a trip costs", u: "https://www.mousehacking.com/blog/how-much-does-a-trip-to-disneyland-cost-2026" },
+    { sec: "money", t: "Disney Tourist Blog: discount tickets", u: "https://www.disneytouristblog.com/discount-disneyland-tickets/" },
+    { sec: "money", t: "Disney Tourist Blog: 2027 ticket deal", u: "https://www.disneytouristblog.com/new-3-4-day-disneyland-ticket-deals-coming-for-2027/" },
+    { sec: "money", t: "Mickey Visit: gift card discounts", u: "https://mickeyvisit.com/disney-gift-card-discounts/" },
+    { sec: "money", t: "Disneyland: 2026 kids' ticket offer", u: "https://disneyland.disney.go.com/offers-discounts/kids-summer-ticket-offer-2026/" },
+    { sec: "money", t: "NerdWallet: Disney travel insurance", u: "https://www.nerdwallet.com/article/travel/disney-travel-insurance-worth-cost" },
+    { sec: "stay", t: "Disney Tourist Blog: hotels near Disneyland", u: "https://www.disneytouristblog.com/disneyland-hotels-near/" },
+    { sec: "stay", t: "Disney Tourist Blog: family suites across the street", u: "https://www.disneytouristblog.com/best-hotel-family-suites-across-street-disneyland/" },
+    { sec: "stay", t: "Get Away Today: hotels for large families", u: "https://www.getawaytoday.com/travel-blog/best-disneyland-hotels-for-large-families" },
+    { sec: "stay", t: "WDWNT: end of hotel early entry", u: "https://wdwnt.com/2025/08/disneyland-ending-early-park-entry-replacing-lightning-lane/" },
+    { sec: "stay", t: "WDWNT: ART bus shutdown", u: "https://wdwnt.com/2026/03/disneyland-area-transit-set-for-major-shift-as-art-bus-service-shuts-down-on-march-31/" },
+    { sec: "stay", t: "David's Vacation Club Rentals: FAQ", u: "https://dvcrequest.com/dvc-guests/faq" },
+    { sec: "stay", t: "Anaheim short-term rental rules", u: "https://www.anaheim.net/DocumentCenter/View/12986/STR-House-Rules" },
+    { sec: "stay", t: "NBC Los Angeles: Olympic volleyball in Anaheim", u: "https://www.nbclosangeles.com/olympics/2028-los-angeles/anaheim-honda-center-la-2028-volleyball/3680656/" },
+    { sec: "parks", t: "Get Away Today: ride height requirements", u: "https://getawaytoday.com/disneyland-ride-height-requirements" },
+    { sec: "parks", t: "Mouse Hacking: Lightning Lane guide", u: "https://www.mousehacking.com/blog/disneyland-lightning-lane-guide-both-parks" },
+    { sec: "parks", t: "Mickey Visit: Rider Switch", u: "https://mickeyvisit.com/disneyland-rider-switch/" },
+    { sec: "parks", t: "Undercover Tourist: Baby Care Centers", u: "https://www.undercovertourist.com/blog/disneyland-baby-care-center/" },
+    { sec: "parks", t: "Mickey Visit: babies at Disneyland", u: "https://mickeyvisit.com/babies-at-disneyland/" },
+    { sec: "parks", t: "Undercover Tourist: Disneyland with grandparents", u: "https://www.undercovertourist.com/blog/disneyland-with-grandparents/" },
+    { sec: "parks", t: "Disney Parks Blog: 2027 fireworks and parade", u: "https://disneyparksblog.com/dlr/disneyland-entertainment-2027-fireworks-parade-and-more/" },
+    { sec: "parks", t: "Rope Drop Planner: food prices", u: "https://ropedropplanner.com/dlr/food-prices" },
+    { sec: "crew", t: "Undercover Tourist: multi-generational trips", u: "https://www.undercovertourist.com/blog/multi-generational-trip-disneyland/" },
+    { sec: "crew", t: "Touring Plans: Disney with a large group", u: "https://touringplans.com/blog/disney-large-group/" },
+    { sec: "crew", t: "The Points Guy: planning a multigenerational trip", u: "https://thepointsguy.com/news/plan-multigenerational-family-trip" },
+    { sec: "trip", t: "Undercover Tourist: stroller tips", u: "https://www.undercovertourist.com/blog/tips-using-stroller-disneyland/" },
+    { sec: "trip", t: "Disneyland: virtual queues", u: "https://disneyland.disney.go.com/guest-services/virtual-queue/" }
+  ]
+};
