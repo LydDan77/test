@@ -6,9 +6,9 @@ A family trip planner for a 2027 or 2028 Disneyland trip. Plain HTML, CSS and Ja
 
 | File | What it is |
 |---|---|
-| `guide.js` | The research: best times to go, prices, booking windows, hotels, rides and heights, packing lists. Edit this when facts change. |
+| `guide.js` | The research: best times to go, prices, booking windows, hotels, rides and heights, packing lists, plus the trivia, movie-night and daily-magic content. Edit this when facts change. |
 | `plan.json` | The family's shared plan: trip dates, crew, shortlist, bookings, itinerary, updates. |
-| `app.js` | The app: pages, forms, the budget estimator, the who-can-ride chart, saving. |
+| `app.js` | The app: pages, forms, the night-sky hero and fireworks, the live countdown, the budget estimator, the who-can-ride chart, the Fun zone games, saving. |
 | `styles.css` | The look, in light and dark. |
 | `shell.js` | The page's HTML shell, used by both the build and the in-page Save. |
 | `build.mjs` | Rebuilds `page.html` and `index.html` from `shell.js` and `plan.json`. |

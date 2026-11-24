@@ -7,10 +7,13 @@
   var SHELL = window.TRIP_SHELL;
   var app = document.getElementById('app');
   var HOSTED = !!(window.claude && typeof window.claude.use === 'function');
+  var REDUCED = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+  var SPARK = ['#FFC83D', '#FF8AC2', '#7FE3FF', '#FFFFFF', '#B79CFF', '#8CF5B0'];
 
   /* ---------------- utilities ---------------- */
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
   function clone(o) { return JSON.parse(JSON.stringify(o)); }
+  function shuffle(a) { for (var i = a.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)), t = a[i]; a[i] = a[j]; a[j] = t; } return a; }
   function uid() { return 'x' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
   function pd(s) { var m = /^(\d{4})-(\d{1,2})(?:-(\d{1,2}))?/.exec(s || ''); return m ? new Date(+m[1], +m[2] - 1, +(m[3] || 1)) : null; }
   function iso(d) { return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
@@ -69,7 +72,7 @@
   };
   function canEdit() { return S.mode === 'owner' || (S.mode === 'local' && L.localEdit === true); }
 
-  var NAV = [['hq', 'HQ'], ['when', 'When to go'], ['plan', 'Countdown'], ['money', 'Budget'], ['stay', 'Stay & travel'], ['parks', 'Parks'], ['crew', 'Crew'], ['trip', 'Trip days']];
+  var NAV = [['hq', 'HQ'], ['when', 'When to go'], ['plan', 'Countdown'], ['money', 'Budget'], ['stay', 'Stay & travel'], ['parks', 'Parks'], ['fun', 'Fun zone'], ['crew', 'Crew'], ['trip', 'Trip days']];
 
   /* ---------------- saving ---------------- */
   function commit(msg) {
@@ -198,9 +201,8 @@
   }
 
   /* ---------------- small render helpers ---------------- */
-  function head(eyebrow, title, lede) {
-    return '<div class="view-head"><span class="eyebrow">' + esc(eyebrow) + '</span><h1>' + esc(title) + '</h1>' + (lede ? '<p>' + esc(lede) + '</p>' : '') + '</div>';
-  }
+  var HERO = null;   // each view names its page here; render() paints it into the night-sky hero
+  function head(eyebrow, title, lede) { HERO = { eyebrow: eyebrow, title: title, lede: lede || '' }; return ''; }
   function sec(title, intro, body, action) {
     return '<section class="sec"><div class="sec-head"><div class="sec-top"><h2>' + esc(title) + '</h2>' + (action || '') + '</div>' + (intro ? '<p>' + esc(intro) + '</p>' : '') + '</div>' + body + '</section>';
   }
@@ -289,7 +291,7 @@
     var bar = '';
     if (S.mode === 'local' && L.localEdit) bar = '<div class="modebar"><div class="wrap"><span><b>Editing a copy on this device.</b> Nobody else sees these changes.</span><span class="rowflex"><button class="btn sm" data-act="copy-plan">Copy plan data</button><button class="btn sm" data-act="local-off">Stop editing</button></span></div></div>';
     if (S.stale) bar = '<div class="modebar"><div class="wrap"><span><b>You have unsaved edits from an earlier visit,</b> and the plan has been saved since then.</span><span class="rowflex"><button class="btn sm" data-act="stale-keep">Keep my edits</button><button class="btn sm" data-act="stale-drop">Discard them</button></span></div></div>';
-    return '<header class="top"><div class="wrap"><div class="top-in"><a class="brand" href="#hq"><span class="brand-mark" aria-hidden="true">HQ</span><span style="min-width:0"><span class="brand-name" style="display:block">' + esc(plan.trip.name || 'Our Disneyland Adventure') + '</span><span class="brand-sub" style="display:block">Family trip headquarters</span></span></a>' + w + '</div><nav class="tabs" aria-label="Sections">' + tabs + '</nav></div></header>' + bar;
+    return '<header class="top"><div class="wrap"><div class="top-in"><a class="brand" href="#hq"><span class="brand-mark" aria-hidden="true"></span><span style="min-width:0"><span class="brand-name">' + esc(plan.trip.name || 'Our Disneyland Adventure') + '</span><span class="brand-sub">Family trip headquarters</span></span></a>' + w + '</div><nav class="tabs" aria-label="Sections">' + tabs + '</nav></div></header>' + bar;
   }
   function footer() {
     var who = S.mode === 'owner' ? 'You can edit this plan. Changes reach everyone when you press Save for everyone.' :
@@ -301,14 +303,187 @@
     if (S.mode !== 'owner' || !S.dirty) return '';
     return '<div class="savebar"><div class="savebar-in"><span><b>Unsaved changes.</b> Only you can see them so far.</span><span class="rowflex"><button class="btn ghost" data-act="discard"' + (S.saving ? ' disabled' : '') + '>Discard</button><button class="btn primary" data-act="save"' + (S.saving ? ' disabled' : '') + '>' + (S.saving ? 'Saving…' : 'Save for everyone') + '</button></span></div></div>';
   }
+  /* ---------------- the night sky: stars, skyline, fireworks ---------------- */
+  var Sky = (function () {
+    var cv = null, c = null, w = 0, h = 0, big = false, stars = [], rockets = [], sparks = [], raf = 0, nextAt = 0, onScreen = true, io = null, ro = null;
+    function size() {
+      if (!cv) return;
+      var r = cv.getBoundingClientRect(), dpr = Math.min(2, window.devicePixelRatio || 1);
+      w = Math.max(1, r.width); h = Math.max(1, r.height);
+      cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr); c.setTransform(dpr, 0, 0, dpr, 0, 0);
+      stars = [];
+      for (var i = 0, n = Math.round(w * h / 5200); i < n; i++) stars.push({ x: Math.random() * w, y: Math.random() * h * 0.8, r: Math.random() * 1.2 + 0.3, p: Math.random() * 6.28, s: 0.6 + Math.random() * 1.8 });
+    }
+    function skyline() {
+      var u = big ? (w < 560 ? 70 : 84) : 52, g = h, s = u / 90, i;
+      c.fillStyle = '#060924';
+      c.beginPath(); c.moveTo(0, g); c.lineTo(0, g - u * 0.2);
+      c.quadraticCurveTo(w * 0.25, g - u * 0.46, w * 0.5, g - u * 0.22);
+      c.quadraticCurveTo(w * 0.78, g - u * 0.02, w, g - u * 0.3); c.lineTo(w, g); c.closePath(); c.fill();
+      [0.04, 0.24, 0.3, 0.52, 0.58, 0.9, 0.96].forEach(function (f, k) { var x = w * f, r = u * (0.13 + (k % 3) * 0.03), y = g - u * 0.3; c.beginPath(); c.arc(x, y - r * 0.6, r, 0, 6.3); c.fill(); c.fillRect(x - 1.5, y, 3, u * 0.3); });
+      if (w > 420) {   // an observation wheel
+        var fx = w * 0.13, R0 = u * 0.62, fy = g - u * 0.3 - R0;
+        c.strokeStyle = '#060924'; c.lineWidth = Math.max(2, 3 * s);
+        c.beginPath(); c.arc(fx, fy, R0, 0, 6.3); c.stroke();
+        for (i = 0; i < 8; i++) { var a = i * Math.PI / 4; c.beginPath(); c.moveTo(fx, fy); c.lineTo(fx + Math.cos(a) * R0, fy + Math.sin(a) * R0); c.stroke(); c.beginPath(); c.arc(fx + Math.cos(a) * R0, fy + Math.sin(a) * R0, 3.4 * s + 1, 0, 6.3); c.fill(); }
+        c.beginPath(); c.moveTo(fx, fy); c.lineTo(fx - R0 * 0.5, g); c.lineTo(fx + R0 * 0.5, g); c.closePath(); c.fill();
+      }
+      if (w > 640) {   // a snowy peak
+        var mx = w * 0.42, mb = g - u * 0.2;
+        c.beginPath(); c.moveTo(mx - u * 0.85, mb); c.lineTo(mx - u * 0.2, mb - u * 0.78); c.lineTo(mx - u * 0.05, mb - u * 0.62); c.lineTo(mx + u * 0.12, mb - u * 0.95); c.lineTo(mx + u * 0.9, mb); c.closePath(); c.fill();
+      }
+      // a storybook castle of our own
+      var cx = w * (w > 700 ? 0.76 : 0.74), b = g - u * 0.16;
+      var rect = function (x, y, ww, hh) { c.fillRect(cx + x * s, b - (y + hh) * s, ww * s, hh * s + 1); };
+      var cone = function (x, y, ww, hh) { c.beginPath(); c.moveTo(cx + (x - ww / 2) * s, b - y * s + 0.5); c.lineTo(cx + x * s, b - (y + hh) * s); c.lineTo(cx + (x + ww / 2) * s, b - y * s + 0.5); c.closePath(); c.fill(); };
+      rect(-46, 0, 92, 34);
+      for (i = 0; i < 7; i++) rect(-46 + i * 14, 34, 8, 6);
+      rect(-58, 0, 18, 52); cone(-49, 52, 26, 26);
+      rect(40, 0, 18, 52); cone(49, 52, 26, 26);
+      rect(-32, 34, 12, 22); cone(-26, 56, 18, 20);
+      rect(20, 34, 12, 22); cone(26, 56, 18, 20);
+      rect(-16, 34, 32, 34); cone(0, 68, 42, 38);
+      rect(-0.75, 106, 1.5, 12);
+      c.fillStyle = '#FFC83D';
+      c.beginPath(); c.moveTo(cx + 0.75 * s, b - 118 * s); c.lineTo(cx + 12 * s, b - 114 * s); c.lineTo(cx + 0.75 * s, b - 110 * s); c.closePath(); c.fill();
+      rect(-51, 30, 4, 7); rect(47, 30, 4, 7); rect(-2.5, 46, 5, 9); rect(-28, 42, 4, 6); rect(24, 42, 4, 6);
+      c.beginPath(); c.arc(cx, b - 14 * s, 7 * s, Math.PI, 0); c.fill(); rect(-7, 0, 14, 14);
+    }
+    function burst(x, y, col) {
+      var n = w < 560 ? 54 : 90, alt = SPARK[Math.floor(Math.random() * SPARK.length)];
+      for (var i = 0; i < n; i++) { var a = Math.random() * 6.283, v = (0.35 + Math.random()) * (big ? 3.1 : 2.3); sparks.push({ x: x, y: y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, life: 60 + Math.random() * 50, r: Math.random() * 1.7 + 1, col: i % 4 ? col : alt }); }
+    }
+    function draw(t, still) {
+      var i, p;
+      // A still frame is wiped clean. A moving frame only fades the last one, which gives every spark a tail.
+      if (still) c.clearRect(0, 0, w, h);
+      else { c.globalCompositeOperation = 'destination-out'; c.fillStyle = 'rgba(0,0,0,0.2)'; c.fillRect(0, 0, w, h); c.globalCompositeOperation = 'source-over'; }
+      for (i = 0; i < stars.length; i++) { p = stars[i]; c.globalAlpha = still ? 0.8 : 0.08 + 0.5 * (0.5 + 0.5 * Math.sin(t / 1000 * p.s + p.p)); c.fillStyle = i % 9 ? '#FFFFFF' : '#FFE9A8'; c.beginPath(); c.arc(p.x, p.y, p.r, 0, 6.3); c.fill(); }
+      c.globalCompositeOperation = 'lighter';
+      for (i = rockets.length - 1; i >= 0; i--) {
+        p = rockets[i]; p.y += p.vy; p.vy *= 0.985;
+        c.globalAlpha = 1; c.fillStyle = p.col; c.beginPath(); c.arc(p.x, p.y, 2.2, 0, 6.3); c.fill();
+        if (p.y <= p.ty || p.vy > -0.6) { burst(p.x, p.y, p.col); rockets.splice(i, 1); }
+      }
+      for (i = sparks.length - 1; i >= 0; i--) {
+        p = sparks[i]; p.x += p.vx; p.y += p.vy; p.vy += 0.028; p.vx *= 0.985; p.vy *= 0.985; p.life -= 1;
+        if (p.life <= 0) { sparks.splice(i, 1); continue; }
+        c.globalAlpha = Math.min(1, p.life / 45); c.fillStyle = p.col; c.beginPath(); c.arc(p.x, p.y, p.r, 0, 6.3); c.fill();
+      }
+      c.globalAlpha = 1; c.globalCompositeOperation = 'source-over';
+      skyline();
+    }
+    function launch(x, ty) {
+      if (REDUCED || !cv || sparks.length > 700) return;
+      rockets.push({ x: x, y: h - 20, ty: ty, vy: -Math.max(5, (h - 20 - ty) / 26), col: SPARK[Math.floor(Math.random() * SPARK.length)] });
+      run();
+    }
+    function loop(t) {
+      if (!cv || !cv.isConnected) { raf = 0; return; }
+      var live = !REDUCED && onScreen && !document.hidden;
+      if (big && live && t > nextAt) { nextAt = t + 700 + Math.random() * 1500; launch(w * (0.08 + Math.random() * 0.84), h * (0.1 + Math.random() * 0.34)); }
+      draw(t, REDUCED);
+      raf = live && (big || rockets.length || sparks.length) ? requestAnimationFrame(loop) : 0;
+    }
+    function run() { if (!raf) raf = requestAnimationFrame(loop); }
+    function start(canvas, isBig) {
+      if (raf) cancelAnimationFrame(raf);
+      raf = 0; if (io) io.disconnect(); if (ro) ro.disconnect();
+      cv = canvas; c = cv.getContext('2d'); big = isBig; rockets = []; sparks = []; nextAt = 0; onScreen = true;
+      size(); draw(performance.now(), true);
+      if (window.IntersectionObserver) { io = new IntersectionObserver(function (en) { onScreen = en[0].isIntersecting; if (onScreen) run(); }); io.observe(cv); }
+      if (window.ResizeObserver) { ro = new ResizeObserver(function () { var r = cv.getBoundingClientRect(); if (Math.abs(r.width - w) > 1 || Math.abs(r.height - h) > 1) { size(); draw(performance.now(), true); run(); } }); ro.observe(cv); }
+      cv.parentNode.addEventListener('pointerdown', function (ev) {
+        if (ev.target.closest('a,button,input,select')) return;
+        var r = cv.getBoundingClientRect(); launch(ev.clientX - r.left, Math.max(20, ev.clientY - r.top));
+      });
+      if (big) run();
+    }
+    document.addEventListener('visibilitychange', function () { if (!document.hidden && cv) run(); });
+    return { start: start };
+  })();
+
+  /* ---------------- sparkle bursts for small wins ---------------- */
+  var FX = (function () {
+    var cv = null, c = null, parts = [], raf = 0;
+    function fit() { var d = Math.min(2, window.devicePixelRatio || 1); cv.width = Math.round(window.innerWidth * d); cv.height = Math.round(window.innerHeight * d); c.setTransform(d, 0, 0, d, 0, 0); }
+    function ensure() { if (cv) return; cv = document.createElement('canvas'); cv.className = 'fx'; cv.setAttribute('aria-hidden', 'true'); document.body.appendChild(cv); c = cv.getContext('2d'); fit(); window.addEventListener('resize', fit); }
+    function step() {
+      c.clearRect(0, 0, window.innerWidth, window.innerHeight);
+      for (var i = parts.length - 1; i >= 0; i--) {
+        var p = parts[i]; p.x += p.vx; p.y += p.vy; p.vy += 0.16; p.vx *= 0.985; p.rot += p.vr; p.life -= 1;
+        if (p.life <= 0) { parts.splice(i, 1); continue; }
+        c.save(); c.globalAlpha = Math.min(1, p.life / 24); c.translate(p.x, p.y); c.rotate(p.rot); c.fillStyle = p.col;
+        if (p.star) { c.beginPath(); for (var k = 0; k < 8; k++) { var rr = k % 2 ? p.size * 0.38 : p.size, a = k * Math.PI / 4; c.lineTo(Math.cos(a) * rr, Math.sin(a) * rr); } c.closePath(); c.fill(); }
+        else c.fillRect(-p.size / 2, -p.size / 3, p.size, p.size * 0.66);
+        c.restore();
+      }
+      raf = parts.length ? requestAnimationFrame(step) : 0;
+    }
+    function burst(x, y, n) {
+      if (REDUCED) return;
+      ensure();
+      for (var i = 0; i < (n || 26); i++) { var a = Math.random() * 6.283, v = 2 + Math.random() * 5.5; parts.push({ x: x, y: y, vx: Math.cos(a) * v, vy: Math.sin(a) * v - 2.5, rot: Math.random() * 6.3, vr: (Math.random() - 0.5) * 0.4, life: 46 + Math.random() * 34, size: 5 + Math.random() * 7, col: SPARK[i % SPARK.length], star: i % 3 === 0 }); }
+      if (!raf) raf = requestAnimationFrame(step);
+    }
+    function at(el, n) { if (!el) return; var r = el.getBoundingClientRect(); burst(r.left + r.width / 2, r.top + r.height / 2, n); }
+    function show() { if (REDUCED) return; for (var i = 0; i < 7; i++) setTimeout(function () { burst(window.innerWidth * (0.12 + Math.random() * 0.76), window.innerHeight * (0.15 + Math.random() * 0.45), 46); }, i * 230); }
+    return { burst: burst, at: at, show: show };
+  })();
+
+  /* ---------------- page regions, hero and countdown ---------------- */
+  app.innerHTML = '<div id="r-top"></div><div id="r-hero"></div><main><div class="wrap" id="r-view"></div></main><div id="r-bars"></div>';
+  var R = { top: document.getElementById('r-top'), hero: document.getElementById('r-hero'), view: document.getElementById('r-view'), bars: document.getElementById('r-bars') };
+  var heroSig = '';
+  function countTarget() {
+    var s = tripStart(); if (s) return { d: s, real: true };
+    var w = (G.windows || [])[0], d = w && pd(w.start);
+    return d ? { d: d, real: false, title: w.title } : null;
+  }
+  function heroExtra() {
+    var s = tripStart(), e = tripEnd(), td = today(), t = countTarget();
+    if (s && td >= s && td <= e) return '<p class="bignum" style="color:var(--gold)">We are here! Day ' + (dayDiff(s, td) + 1) + '</p>';
+    if (s && td > e) return '<p>What a trip. Time to share the photos.</p>';
+    if (!t) return '';
+    var unit = function (k, l) { return '<div class="flip-u"><span class="flip-n" data-u="' + k + '">--</span><span class="flip-l">' + l + '</span></div>'; };
+    return '<div class="flip" id="flip" role="timer" aria-label="Countdown to ' + esc(fmt(t.d)) + '">' + unit('d', 'days') + unit('h', 'hours') + unit('m', 'minutes') + unit('s', 'seconds') + '</div>' +
+      '<p class="hint">' + (t.real ? 'Until we walk through the gates on ' + esc(fmt(t.d, true)) + '.' : 'A dream countdown to our top-ranked window, ' + esc(t.title) + '. Lock real dates on the When to go page to make it official.') + (REDUCED ? '' : ' Tap the sky to set off a firework.') + '</p>';
+  }
+  function tickFlip(quiet) {
+    var el = document.getElementById('flip'), t = el && countTarget(); if (!t) return;
+    var ms = Math.max(0, t.d.getTime() - Date.now());
+    var v = { d: Math.floor(ms / 864e5), h: Math.floor(ms / 36e5) % 24, m: Math.floor(ms / 6e4) % 60, s: Math.floor(ms / 1e3) % 60 };
+    ['d', 'h', 'm', 's'].forEach(function (k) {
+      var n = el.querySelector('[data-u="' + k + '"]'), txt = k === 'd' ? String(v[k]) : String(v[k]).padStart(2, '0');
+      if (n.textContent === txt) return;
+      n.textContent = txt;
+      if (!REDUCED && quiet !== true) { n.classList.remove('tick'); void n.offsetWidth; n.classList.add('tick'); }
+    });
+  }
+  setInterval(tickFlip, 1000);
+  function renderHero() {
+    var hd = HERO || { eyebrow: '', title: plan.trip.name || 'Our Disneyland Adventure', lede: '' }, big = S.route === 'hq', extra = big ? heroExtra() : '';
+    var sig = S.route + '|' + JSON.stringify(hd) + '|' + extra;
+    if (sig === heroSig) return;
+    heroSig = sig;
+    R.hero.innerHTML = '<section class="hero' + (big ? ' big' : '') + '"><canvas class="sky" aria-hidden="true"></canvas><div class="wrap hero-in"><span class="eyebrow">' + esc(hd.eyebrow) + '</span><h1>' + esc(hd.title) + '</h1>' + (hd.lede ? '<p>' + esc(hd.lede) + '</p>' : '') + extra + '</div></section>';
+    Sky.start(R.hero.querySelector('canvas'), big);
+    tickFlip(true);
+  }
   var V = {};
   function render() {
+    HERO = null;
     var view = (V[S.route] || V.hq)();
     if (S.route === 'hq') markUpdatesSeen();
-    app.innerHTML = chrome() + '<main><div class="wrap">' + view + footer() + '</div></main>' + saveBar();
-    var cur = app.querySelector('.tab[aria-current="page"]');
+    R.top.innerHTML = chrome();
+    renderHero();
+    R.view.innerHTML = view + footer();
+    R.bars.innerHTML = saveBar();
+    var cur = R.top.querySelector('.tab[aria-current="page"]');
     if (cur && cur.scrollIntoView) { try { cur.scrollIntoView({ block: 'nearest', inline: 'nearest' }); } catch (e) { /* older browsers */ } }
+    drawWheel();
   }
+  function dayOfYear() { var t = today(); return dayDiff(new Date(t.getFullYear(), 0, 1), t); }
 
   /* ---------------- view: HQ ---------------- */
   V.hq = function () {
@@ -324,7 +499,7 @@
     }
 
     var tasks = allTasks(), done = tasks.filter(function (x) { return x.done; }).length;
-    h += '<section class="sec"><div class="card lift"><div class="rowflex between"><h2>Where we are: ' + names[ph] + '</h2>' + editBtn('edit-trip', s ? 'Change trip details' : 'Set trip dates') + '</div><div class="phases">' +
+    h += '<section class="sec"><div class="card"><div class="rowflex between"><h2>Where we are: ' + names[ph] + '</h2>' + editBtn('edit-trip', s ? 'Change trip details' : 'Set trip dates') + '</div><div class="phases">' +
       names.map(function (n, i) { return '<div class="phase ' + (i < ph ? 'done' : i === ph ? 'now' : '') + '">' + n + '</div>'; }).join('') + '</div>' +
       '<div class="rowflex" style="gap:22px 34px;margin-top:6px">' +
       '<div class="stat"><span class="stat-n">' + (s ? (td < s ? dayDiff(td, s) : td <= e ? 'Here' : 'Done') : 'TBD') + '</span><span class="stat-l">' + (s && td < s ? 'days until we leave' : 'trip dates') + '</span></div>' +
@@ -344,6 +519,10 @@
     var cc = crewCounts(refDate() || td);
     var crewCard = '<div class="card"><div class="rowflex between"><h3>The crew</h3><a href="#crew" class="small">Roster and jobs</a></div><div class="rowflex" style="gap:14px 28px"><div class="stat"><span class="stat-n">' + cc.adult + '</span><span class="stat-l">adult tickets</span></div><div class="stat"><span class="stat-n">' + cc.child + '</span><span class="stat-l">child tickets</span></div><div class="stat"><span class="stat-n">' + cc.free + '</span><span class="stat-l">free, under 3</span></div></div>' + (plan.crew.some(function (m) { return m.example; }) ? '<p class="small muted">Some names are still placeholders. Add the real crew, with the kids\' birth months and heights, to get exact ticket counts and the ride chart.</p>' : '') + '</div>';
     h += '<section class="sec"><div class="grid two" style="align-items:start"><div class="stack">' + nextCard + crewCard + '</div>' + decCard + '</div></section>';
+
+    var daily = G.daily || [], di = daily.length ? (dayOfYear() + (S.dailyShift || 0)) % daily.length : 0;
+    h += '<section class="sec"><div class="grid two"><div class="card gold"><span class="eyebrow">Today\'s bit of magic</span><p style="font-size:1.12rem">' + esc(daily[di] || '') + '</p><button class="btn sm" data-act="daily-next" style="align-self:flex-start">Show me another</button></div>' +
+      '<div class="card night"><span class="eyebrow" style="color:var(--gold)">Fun zone</span><h3>Games for the countdown</h3><p>See who is tall enough, spin the ride wheel, settle a ride showdown and test the family on park trivia.</p><a class="btn primary" href="#fun" style="align-self:flex-start">Play</a></div></div></section>';
 
     if (!s) {
       h += sec('Best windows from the research', 'The short list. The When to go page has the full picture and the dates to avoid.',
@@ -383,10 +562,10 @@
       editBtn('add-cand', 'Add dates'));
 
     var mi = L.month == null ? -1 : L.month, mo = (G.months || [])[mi];
-    h += sec('The year at a glance', 'Typical crowds by month. Tap a month for weather, what is on, and the weeks to pick or skip.',
+    h += sec('The year at a glance', 'Typical crowds by month. Tap a month for what is on and the weeks to pick or skip.',
       '<div class="scroll"><div class="heat">' + (G.months || []).map(function (m, i) {
-        return '<button class="heat-m lv' + m.crowd + '" data-act="month" data-i="' + i + '" aria-pressed="' + (i === mi) + '"><b>' + esc(m.k) + '</b><span>' + esc(m.hi + '° / ' + m.lo + '°') + '</span><span>' + esc(m.rain) + '</span></button>';
-      }).join('') + '</div></div><div class="legend"><span><i class="lv1"></i>Very light</span><span><i class="lv2"></i>Light</span><span><i class="lv3"></i>Moderate</span><span><i class="lv4"></i>Busy</span><span><i class="lv5"></i>Packed</span><span>High / low °F and typical rain</span></div>' +
+        return '<button class="heat-m lv' + m.crowd + '" data-act="month" data-i="' + i + '" aria-pressed="' + (i === mi) + '"><b>' + esc(m.k) + '</b><em>' + ['', 'Very light', 'Light', 'Moderate', 'Busy', 'Packed'][m.crowd] + '</em><span>' + esc(m.hi + '° / ' + m.lo + '°') + '</span><span>' + esc(m.rain) + '</span></button>';
+      }).join('') + '</div></div><div class="legend"><span><i class="lv1"></i>Very light</span><span><i class="lv2"></i>Light</span><span><i class="lv3"></i>Moderate</span><span><i class="lv4"></i>Busy</span><span><i class="lv5"></i>Packed</span><span>Darker means busier. Each month shows high / low °F and typical rain.</span></div>' +
       (mo ? '<div class="card"><h3>' + esc(mo.name) + '</h3><dl class="kv plain"><dt>Crowds</dt><dd>' + esc(mo.crowdNote) + '</dd><dt>Best bets</dt><dd>' + esc(mo.best) + '</dd><dt>Skip</dt><dd>' + esc(mo.worst) + '</dd><dt>What is on</dt><dd>' + esc(mo.on) + '</dd></dl></div>' : ''));
 
     var cols = G.ageDates || [];
@@ -459,10 +638,11 @@
     var r = estimate();
     return '<div class="scroll"><table class="tbl"><tbody>' + r.rows.map(function (x) { return '<tr><td>' + esc(x[0]) + '</td><td class="num">' + money(x[1]) + '</td></tr>'; }).join('') + '<tr><td>Cushion for surprises (10%)</td><td class="num">' + money(r.cushion) + '</td></tr><tr class="total"><td>Estimated total</td><td class="num">' + money(r.total) + '</td></tr></tbody></table></div><p class="small muted">About ' + money(r.total / Math.max(1, r.people)) + ' per person. Room rate used: ' + money(r.rate) + ' a night before tax.</p>';
   }
+  var MILES = [[25, 'A quarter there'], [50, 'Halfway'], [75, 'Nearly there'], [100, 'Fully funded']];
   function saveOut() {
     var r = estimate(), saved = L.saved.reduce(function (a, x) { return a + num(x.amt); }, 0), left = Math.max(0, r.total - saved);
     var by = needBy(), days = Math.max(7, dayDiff(today(), by)), months = Math.max(1, days / 30.44);
-    return '<div class="rowflex" style="gap:18px 30px"><div class="stat"><span class="stat-n">' + money(left / months) + '</span><span class="stat-l">to set aside each month</span></div><div class="stat"><span class="stat-n">' + money(left / (days / 7)) + '</span><span class="stat-l">or each week</span></div><div class="stat"><span class="stat-n">' + money(saved) + '</span><span class="stat-l">saved so far of ' + money(r.total) + '</span></div></div><div class="meter" role="img" aria-label="Savings progress"><i style="width:' + Math.min(100, Math.round(saved / Math.max(1, r.total) * 100)) + '%"></i></div><p class="small muted">Aiming to have it all by ' + fmt(by) + (tripStart() ? ', 45 days before we leave, when final payments start to fall due.' : ', based on the travel period chosen above.') + '</p>';
+    return '<div class="rowflex" style="gap:18px 30px"><div class="stat"><span class="stat-n">' + money(left / months) + '</span><span class="stat-l">to set aside each month</span></div><div class="stat"><span class="stat-n">' + money(left / (days / 7)) + '</span><span class="stat-l">or each week</span></div><div class="stat"><span class="stat-n">' + money(saved) + '</span><span class="stat-l">saved so far of ' + money(r.total) + '</span></div></div><div class="meter" role="img" aria-label="Savings progress"><i style="width:' + Math.min(100, Math.round(saved / Math.max(1, r.total) * 100)) + '%"></i></div><div class="miles">' + MILES.map(function (m) { return '<div class="mile' + (saved / Math.max(1, r.total) * 100 >= m[0] ? ' on' : '') + '"><i></i><span>' + m[1] + '</span></div>'; }).join('') + '</div><p class="small muted">Aiming to have it all by ' + fmt(by) + (tripStart() ? ', 45 days before we leave, when final payments start to fall due.' : ', based on the travel period chosen above.') + '</p>';
   }
   V.money = function () {
     var e = estDefaults(), c = G.costs || {};
@@ -565,6 +745,133 @@
       }).join('') : '<tr><td colspan="6" class="muted">No rides match.</td></tr>') + '</tbody></table></div></div>');
     if (G.rideNotes) h += sec('Good to know about rides', '', faq(G.rideNotes));
     return h;
+  }
+
+  /* ---------------- view: Fun zone ---------------- */
+  var FUN_TABS = [['height', 'Am I tall enough?'], ['wheel', 'Ride wheel'], ['duel', 'Ride showdown'], ['quiz', 'Trivia'], ['movies', 'Movie nights']];
+  V.fun = function () {
+    var sub = L.sub.fun || 'height';
+    var h = head('Fun zone', 'Play your way to the park', 'Games and gadgets for the countdown. Everything here saves on this device only, so every kid gets their own.');
+    h += '<section class="sec">' + seg('fun', sub, FUN_TABS) + '</section>';
+    return h + ({ height: funHeight, wheel: funWheel, duel: funDuel, quiz: funQuiz, movies: funMovies }[sub] || funHeight)();
+  };
+
+  // --- Am I tall enough?
+  function hcValue() { return Math.max(30, Math.min(56, num(L.hc, 40))); }
+  function hcPos(x) { return Math.max(0, Math.min(100, (x - 30) / 26 * 100)); }
+  function hcOut() {
+    var v = hcValue(), rides = G.rides || [], ok = rides.filter(function (r) { return r.h <= v; }), gated = rides.filter(function (r) { return r.h; });
+    var mine = gated.filter(function (r) { return r.h <= v; }).sort(function (a, b) { return b.h - a.h; }), not = gated.filter(function (r) { return r.h > v; }).sort(function (a, b) { return a.h - b.h; });
+    var top = mine.length ? mine[0].h : 0, next = not[0];
+    return '<div class="rowflex" style="gap:8px 26px;align-items:baseline"><span class="bignum">' + v + ' in</span><span><b>' + ok.length + ' of ' + rides.length + '</b> rides and shows are yours</span></div>' +
+      '<div class="meter" role="img" aria-label="' + ok.length + ' of ' + rides.length + ' rides"><i style="width:' + Math.round(ok.length / Math.max(1, rides.length) * 100) + '%"></i></div>' +
+      (next ? '<p><b>Next unlock at ' + next.h + ' in:</b> ' + esc(not.filter(function (r) { return r.h === next.h; }).map(function (r) { return r.n; }).join(', ')) + '. Just ' + (Math.round((next.h - v) * 2) / 2) + ' in to go.</p>' : '<p><b>Every single ride is unlocked.</b> Nothing in either park is off limits.</p>') +
+      (mine.length ? '<div><p class="small muted" style="margin-bottom:6px">Height-rule rides you can do. Gold is your newest unlock.</p><div class="chips">' + mine.map(function (r) { return '<span class="chip' + (r.h === top ? ' new' : '') + '">' + esc(r.n) + ' ' + r.h + '"</span>'; }).join('') + '</div></div>' : '') +
+      (not.length ? '<div><p class="small muted" style="margin-bottom:6px">Not yet</p><div class="chips">' + not.map(function (r) { return '<span class="chip no">' + esc(r.n) + ' ' + r.h + '"</span>'; }).join('') + '</div></div>' : '');
+  }
+  function updateHc() {
+    var v = hcValue(), out = document.getElementById('hc-out'), fill = document.getElementById('hc-fill'), me = document.getElementById('hc-me'), tag = document.getElementById('hc-tag');
+    if (out) out.innerHTML = hcOut();
+    if (fill) fill.style.height = hcPos(v) + '%';
+    if (me) me.style.bottom = hcPos(v) + '%';
+    if (tag) tag.textContent = v + '"';
+  }
+  function funHeight() {
+    var v = hcValue(), marks = [];
+    (G.rides || []).forEach(function (r) { if (r.h && marks.indexOf(r.h) < 0) marks.push(r.h); });
+    var kids = plan.crew.filter(isChild).map(function (m) { return { m: m, h: heightAtTrip(m) }; }).filter(function (k) { return k.h; });
+    return sec('Am I tall enough?', 'Slide to your height and watch the rides unlock. Cast members measure at the ride with shoes on.',
+      '<div class="card"><div class="tool split"><div class="stick" aria-hidden="true"><div class="stick-fill" id="hc-fill" style="height:' + hcPos(v) + '%"></div>' + marks.map(function (m) { return '<span class="stick-tick" style="bottom:' + hcPos(m) + '%">' + m + '"</span>'; }).join('') + '<div class="stick-me" id="hc-me" style="bottom:' + hcPos(v) + '%"><span id="hc-tag">' + v + '"</span></div></div>' +
+      '<div class="stack"><label class="field" for="hc"><span>My height in inches</span><input type="range" id="hc" min="30" max="56" step="0.5" value="' + v + '" data-inp="hc"></label>' +
+      (kids.length ? '<div class="rowflex"><span class="small muted">Jump to</span>' + kids.map(function (k) { return '<button class="btn sm" data-act="hc-set" data-v="' + k.h.h + '">' + esc(k.m.name) + ' ' + k.h.h + '"</button>'; }).join('') + '</div>' : '') +
+      '<div class="stack" id="hc-out">' + hcOut() + '</div></div></div></div>');
+  }
+
+  // --- Ride wheel
+  var WHEEL_COL = ['#FFC83D', '#C4287C', '#2B3FD0', '#7FE3FF', '#45288A', '#FF8AC2', '#F0A20A', '#1D1968', '#8CF5B0', '#5C62D8'];
+  var WHEEL_INK = ['#1A1446', '#FFFFFF', '#FFFFFF', '#1A1446', '#FFFFFF', '#1A1446', '#1A1446', '#FFFFFF', '#1A1446', '#FFFFFF'];
+  var W = { slices: null, angle: 0, result: null, busy: false, sig: '' };
+  function shortest() { var hs = plan.crew.filter(isChild).map(heightAtTrip).filter(Boolean).map(function (x) { return x.h; }); return hs.length ? Math.min.apply(null, hs) : null; }
+  function wheelPool() {
+    var park = L.wheelPark || 'all', fit = L.wheelFit || 'all', sh = shortest();
+    return (G.rides || []).filter(function (r) { return (park === 'all' || r.p === park) && (fit === 'all' || (fit === 'any' ? !r.h : fit === 'crew' ? r.h <= (sh || 0) : !!L.stars[rideKey(r)])); });
+  }
+  function wheelDeal() { W.slices = shuffle(wheelPool().slice()).slice(0, 10); W.result = null; W.angle = 0; }
+  function wheelOut() {
+    if (W.busy) return '<h3>Round and round it goes...</h3>';
+    if (!W.result) return '<h3>On this wheel</h3><div class="chips">' + (W.slices || []).map(function (r, i) { return '<span class="chip" style="background:' + WHEEL_COL[i % 10] + ';color:' + WHEEL_INK[i % 10] + '">' + esc(r.n) + '</span>'; }).join('') + '</div><p class="small muted">Ten rides are dealt at random from the ones that match.</p>';
+    var r = W.result, on = !!L.stars[rideKey(r)];
+    return '<span class="eyebrow">The wheel says</span><p class="bignum" style="font-size:clamp(1.8rem,1.4rem + 2vw,2.6rem)">' + esc(r.n) + '</p><div class="rowflex"><span class="pill teal">' + esc(r.land) + ', ' + (r.p === 'DL' ? 'Disneyland Park' : 'California Adventure') + '</span><span class="pill">' + (r.h ? r.h + ' in or taller' : 'Any height') + '</span><span class="pill">' + esc(r.type) + '</span></div>' + (r.note ? '<p class="small muted">' + esc(r.note) + '</p>' : '') + '<div class="rowflex"><button class="btn sm" data-act="star" data-id="' + esc(rideKey(r)) + '">' + (on ? 'Starred' : 'Star this ride') + '</button></div>';
+  }
+  function funWheel() {
+    var sig = (L.wheelPark || 'all') + '|' + (L.wheelFit || 'all');
+    if (!W.slices || W.sig !== sig) { W.sig = sig; wheelDeal(); }
+    var fits = [['all', 'Any ride'], ['any', 'No height rule']];
+    if (shortest()) fits.push(['crew', 'Our shortest rider can go']);
+    fits.push(['star', 'My starred rides']);
+    return sec('Ride wheel', 'Cannot agree on what to ride next? Let the wheel decide.',
+      '<div class="rowflex">' + seg('wheelPark', L.wheelPark || 'all', [['all', 'Both parks'], ['DL', 'Disneyland Park'], ['DCA', 'California Adventure']], 'wheel-set') + seg('wheelFit', L.wheelFit || 'all', fits, 'wheel-set') + '</div>' +
+      '<div class="card"><div class="tool half"><div class="stack" style="align-items:center">' + (W.slices.length >= 2 ? '<div class="wheel-wrap"><span class="wheel-pin" aria-hidden="true"></span><canvas id="wheel" width="680" height="680" role="img" aria-label="A wheel of ' + W.slices.length + ' rides"></canvas><span class="wheel-hub" aria-hidden="true"></span></div><div class="rowflex" style="justify-content:center"><button class="btn primary big" data-act="wheel-spin">Spin the wheel</button><button class="btn" data-act="wheel-deal">Deal new rides</button></div>' : '<div class="empty">Not enough rides match. Loosen the filters, or star a few rides on the Parks page.</div>') + '</div>' +
+      '<div class="stack" id="wheel-out" aria-live="polite">' + wheelOut() + '</div></div></div>');
+  }
+  function drawWheel() {
+    var cv = document.getElementById('wheel'); if (!cv || !W.slices) return;
+    var c = cv.getContext('2d'), n = W.slices.length, R0 = 340, a = Math.PI * 2 / n;
+    c.clearRect(0, 0, 680, 680);
+    for (var i = 0; i < n; i++) {
+      c.beginPath(); c.moveTo(R0, R0); c.arc(R0, R0, R0, i * a, (i + 1) * a); c.closePath(); c.fillStyle = WHEEL_COL[i % 10]; c.fill();
+      c.strokeStyle = '#0B1140'; c.lineWidth = 3; c.stroke();
+      c.save(); c.translate(R0, R0); c.rotate(i * a + a / 2); c.fillStyle = WHEEL_INK[i % 10]; c.font = '600 25px Fredoka, "Trebuchet MS", sans-serif'; c.textAlign = 'right'; c.textBaseline = 'middle';
+      var label = W.slices[i].n; if (label.length > 22) label = label.slice(0, 20).trim() + '...';
+      c.fillText(label, R0 - 22, 0); c.restore();
+    }
+    cv.style.transition = 'none'; cv.style.transform = 'rotate(' + W.angle + 'deg)';
+  }
+
+  // --- Ride showdown
+  var DUEL_ROUNDS = 15, duelPair = null;
+  function duelState() { if (!L.duel) L.duel = { r: {}, seen: {}, n: 0 }; return L.duel; }
+  function duelNext() {
+    var d = duelState(), rides = (G.rides || []).map(function (r) { return { r: r, k: (d.seen[rideKey(r)] || 0) + Math.random() }; }).sort(function (a, b) { return a.k - b.k; });
+    duelPair = [rides[0].r, rides[1].r];
+  }
+  function duelTop(n) { var d = duelState(); return (G.rides || []).filter(function (r) { return d.seen[rideKey(r)]; }).sort(function (a, b) { return (d.r[rideKey(b)] || 1000) - (d.r[rideKey(a)] || 1000); }).slice(0, n); }
+  function funDuel() {
+    var d = duelState(); if (!duelPair) duelNext();
+    var card = function (r, side) { return '<button data-act="duel" data-w="' + side + '"><span class="eyebrow">' + esc(r.land) + '</span><b>' + esc(r.n) + '</b><span class="rowflex" style="justify-content:center"><span class="pill">' + (r.h ? r.h + ' in or taller' : 'Any height') + '</span><span class="pill teal">' + esc(r.type) + '</span></span></button>'; };
+    var done = d.n >= DUEL_ROUNDS, top = duelTop(8);
+    var h = sec('Ride showdown', 'Two rides, one pick: which would you rather ride? After ' + DUEL_ROUNDS + ' rounds you get your own top list to send to the organizers.',
+      '<div class="card"><div class="rowflex between"><span class="pill sun">' + (done ? 'Bonus round ' + (d.n - DUEL_ROUNDS + 1) : 'Round ' + (d.n + 1) + ' of ' + DUEL_ROUNDS) + '</span><button class="btn sm" data-act="duel-skip">Skip this pair</button></div><div class="duel">' + card(duelPair[0], 0) + '<span class="vs" aria-hidden="true">or</span>' + card(duelPair[1], 1) + '</div><div class="meter" role="img" aria-label="Round ' + Math.min(d.n, DUEL_ROUNDS) + ' of ' + DUEL_ROUNDS + '"><i style="width:' + Math.min(100, Math.round(d.n / DUEL_ROUNDS * 100)) + '%"></i></div></div>');
+    if (top.length >= 3) h += sec(done ? 'My top rides' : 'My top rides so far', done ? 'Keep playing to sharpen the list, or send it to the organizers now.' : '',
+      '<div class="card"><ol class="rank">' + top.map(function (r) { return '<li><span>' + esc(r.n) + '</span></li>'; }).join('') + '</ol><div class="rowflex"><button class="btn primary" data-act="duel-copy">Copy my list</button><button class="btn" data-act="duel-star">Star my top five</button><button class="btn" data-act="duel-reset">Start over</button></div></div>');
+    return h;
+  }
+
+  // --- Trivia
+  var Q = null;
+  function funQuiz() {
+    var bank = G.trivia || [];
+    if (!Q) return sec('Trivia challenge', 'Ten questions about the park. Read them out at dinner and see who knows the most.',
+      '<div class="card gold"><div class="rowflex" style="gap:18px 30px"><div class="stat"><span class="stat-n">' + (L.quizBest != null ? L.quizBest + '/10' : 'None yet') + '</span><span class="stat-l">best score on this device</span></div><div class="stat"><span class="stat-n">' + bank.length + '</span><span class="stat-l">questions in the vault</span></div></div><button class="btn primary big" data-act="quiz-start" style="align-self:flex-start">Start a round</button></div>');
+    if (Q.i >= Q.order.length) {
+      var msg = Q.score >= 9 ? 'Park historian. You could lead the tour.' : Q.score >= 7 ? 'So close to perfect.' : Q.score >= 4 ? 'A solid start. Another round will lift it.' : 'Plenty left to discover, which is half the fun.';
+      return sec('Trivia challenge', '', '<div class="card gold"><span class="eyebrow">Final score</span><p class="bignum">' + Q.score + ' out of ' + Q.order.length + '</p><p>' + msg + '</p><p class="small muted">Best on this device: ' + L.quizBest + ' out of 10.</p><button class="btn primary" data-act="quiz-start" style="align-self:flex-start">Play again</button></div>');
+    }
+    var q = bank[Q.order[Q.i]], picked = Q.pick != null;
+    return sec('Trivia challenge', '', '<div class="card"><div class="rowflex between"><span class="pill sun">Question ' + (Q.i + 1) + ' of ' + Q.order.length + '</span><span class="pill">Score ' + Q.score + '</span></div><h3 style="font-size:1.35rem">' + esc(q.q) + '</h3><div class="quiz-opts">' + q.a.map(function (opt, i) {
+      var cls = !picked ? '' : i === q.c ? ' right' : i === Q.pick ? ' wrong' : '';
+      return '<button class="quiz-opt' + cls + '" data-act="quiz-pick" data-i="' + i + '"' + (picked ? ' disabled' : '') + '>' + esc(opt) + (picked && i === q.c ? ' (correct)' : '') + '</button>';
+    }).join('') + '</div>' + (picked ? '<div class="callout' + (Q.pick === q.c ? ' sun' : '') + '" role="status"><b>' + (Q.pick === q.c ? 'Correct!' : 'Not quite.') + '</b><p>' + esc(q.f) + '</p></div><button class="btn primary" data-act="quiz-next" style="align-self:flex-start">' + (Q.i + 1 >= Q.order.length ? 'See my score' : 'Next question') + '</button>' : '') + '</div>');
+  }
+
+  // --- Movie nights
+  function funMovies() {
+    var list = G.movies || [], seen = list.filter(function (m, i) { return L.movies && L.movies[i]; }).length;
+    return sec('Movie nights', seen + ' of ' + list.length + ' watched. Every film here has a ride or a place waiting for it in the parks.',
+      '<div class="card"><div class="meter" role="img" aria-label="' + seen + ' of ' + list.length + ' watched"><i style="width:' + Math.round(seen / Math.max(1, list.length) * 100) + '%"></i></div><div>' + list.map(function (m, i) {
+        var on = !!(L.movies && L.movies[i]);
+        return '<div class="check' + (on ? ' done' : '') + '"><input type="checkbox" id="mv-' + i + '" data-chg="movie" data-i="' + i + '"' + (on ? ' checked' : '') + '><div class="check-main"><label class="check-t" for="mv-' + i + '">' + esc(m.m) + '</label><span class="small muted">' + esc(m.r) + '</span></div></div>';
+      }).join('') + '</div></div>');
   }
 
   /* ---------------- view: Crew ---------------- */
@@ -682,7 +989,7 @@
       plan.candidates.forEach(function (x) { if (x.status === 'chosen') x.status = 'option'; });
       c.status = 'chosen'; plan.trip.start = c.start; plan.trip.end = c.end; plan.trip.nights = dayDiff(pd(c.start), pd(c.end));
       plan.decisions.when = { a: c.label + ': ' + fmtRange(pd(c.start), pd(c.end)), done: true };
-      commit('Dates locked. The countdown now has real due dates.');
+      commit('Dates locked. The countdown is official.'); FX.show();
     },
     'month': function (el) { var i = +el.dataset.i; L.month = L.month === i ? null : i; saveL(); render(); },
     'add-crew': function () { A['edit-crew']({ dataset: {} }); },
@@ -720,14 +1027,60 @@
     },
     'sub': function (el) { L.sub[el.dataset.k] = el.dataset.v; saveL(); render(); },
     'ride-filter': function (el) { S[el.dataset.k] = el.dataset.v; render(); },
-    'star': function (el) { var k = el.dataset.id; L.stars[k] = !L.stars[k]; saveL(); render(); },
+    'star': function (el) { var k = el.dataset.id, r = el.getBoundingClientRect(); L.stars[k] = !L.stars[k]; saveL(); render(); if (L.stars[k]) FX.burst(r.left + r.width / 2, r.top + r.height / 2, 16); },
+    'daily-next': function () { S.dailyShift = (S.dailyShift || 0) + 1; render(); },
+    'hc-set': function (el) { L.hc = num(el.dataset.v, 40); saveL(); render(); },
+    'wheel-set': function (el) { L[el.dataset.k] = el.dataset.v; saveL(); W.slices = null; render(); },
+    'wheel-deal': function () { if (W.busy) return; wheelDeal(); render(); },
+    'wheel-spin': function () {
+      var cv = document.getElementById('wheel'), out = document.getElementById('wheel-out');
+      if (!cv || W.busy || !W.slices || W.slices.length < 2) return;
+      var n = W.slices.length, k = Math.floor(Math.random() * n), step = 360 / n;
+      var base = (((-90 - (k * step + step / 2)) % 360) + 360) % 360;
+      var target = Math.ceil((W.angle + 1440 - base) / 360) * 360 + base + (Math.random() - 0.5) * step * 0.6;
+      var done = function () { W.busy = false; W.angle = target; W.result = W.slices[k]; var o = document.getElementById('wheel-out'); if (o) o.innerHTML = wheelOut(); FX.at(document.querySelector('.wheel-pin'), 40); };
+      W.busy = true; W.result = null; if (out) out.innerHTML = wheelOut();
+      if (REDUCED) { cv.style.transform = 'rotate(' + target + 'deg)'; return done(); }
+      cv.style.transition = 'transform 4.4s cubic-bezier(.12, .7, .08, 1)'; cv.style.transform = 'rotate(' + target + 'deg)';
+      setTimeout(done, 4500);
+    },
+    'duel': function (el) {
+      var d = duelState(), w = +el.dataset.w, a = rideKey(duelPair[w]), b = rideKey(duelPair[1 - w]), r = el.getBoundingClientRect();
+      var ra = d.r[a] || 1000, rb = d.r[b] || 1000, ea = 1 / (1 + Math.pow(10, (rb - ra) / 400));
+      d.r[a] = ra + 32 * (1 - ea); d.r[b] = rb - 32 * (1 - ea);
+      d.seen[a] = (d.seen[a] || 0) + 1; d.seen[b] = (d.seen[b] || 0) + 1; d.n++;
+      saveL(); duelNext(); render();
+      if (d.n === DUEL_ROUNDS) { FX.show(); toast('Your top rides are in'); } else FX.burst(r.left + r.width / 2, r.top + r.height / 2, 14);
+    },
+    'duel-skip': function () { duelNext(); render(); },
+    'duel-copy': function () { copyText('My top Disneyland rides:\n' + duelTop(8).map(function (r, i) { return (i + 1) + '. ' + r.n; }).join('\n'), 'List copied. Paste it into a text to the organizers.'); },
+    'duel-star': function () { duelTop(5).forEach(function (r) { L.stars[rideKey(r)] = true; }); saveL(); render(); toast('Top five starred on the Parks page'); },
+    'duel-reset': function () { L.duel = null; duelPair = null; saveL(); render(); },
+    'quiz-start': function () { Q = { order: shuffle((G.trivia || []).map(function (x, i) { return i; })).slice(0, 10), i: 0, score: 0, pick: null }; render(); },
+    'quiz-pick': function (el) {
+      if (!Q || Q.pick != null) return;
+      var q = G.trivia[Q.order[Q.i]], i = +el.dataset.i, r = el.getBoundingClientRect();
+      Q.pick = i; if (i === q.c) Q.score++;
+      render(); if (i === q.c) FX.burst(r.left + r.width / 2, r.top + r.height / 2, 22);
+    },
+    'quiz-next': function () {
+      if (!Q) return;
+      Q.i++; Q.pick = null;
+      if (Q.i >= Q.order.length) { if (L.quizBest == null || Q.score > L.quizBest) { L.quizBest = Q.score; saveL(); } if (Q.score >= 8) FX.show(); }
+      render();
+    },
     'copy-stars': function () {
       var names = (G.rides || []).filter(function (r) { return L.stars[rideKey(r)]; }).map(function (r) { return '- ' + r.n + ' (' + (r.p === 'DL' ? 'Disneyland Park' : 'California Adventure') + ')'; });
       copyText('My Disneyland must-dos:\n' + names.join('\n'), 'List copied. Paste it into a text to the organizers.');
     },
     'copy-plan': function () { copyText(JSON.stringify(plan, null, 2), 'Plan data copied'); },
     'add-saved': function () {
-      openForm({ title: 'Add money saved', fields: [{ k: 'amt', label: 'Amount in dollars', type: 'number', req: true }, { k: 'note', label: 'Note', ph: 'e.g. December transfer, gift card from Grandma' }], onSave: function (v) { L.saved.push({ amt: num(v.amt), note: v.note, date: iso(today()) }); saveL(); render(); } });
+      openForm({ title: 'Add money saved', fields: [{ k: 'amt', label: 'Amount in dollars', type: 'number', req: true }, { k: 'note', label: 'Note', ph: 'e.g. December transfer, gift card from Grandma' }], onSave: function (v) {
+        var total = Math.max(1, estimate().total), sum = function () { return L.saved.reduce(function (a, x) { return a + num(x.amt); }, 0); }, before = sum() / total * 100;
+        L.saved.push({ amt: num(v.amt), note: v.note, date: iso(today()) }); saveL(); render();
+        var after = sum() / total * 100, hit = MILES.filter(function (m) { return before < m[0] && after >= m[0]; }).pop();
+        if (hit) { FX.show(); toast('Milestone: ' + hit[1].toLowerCase() + '!'); }
+      } });
     },
     'del-saved': function (el) { L.saved.splice(+el.dataset.i, 1); saveL(); render(); },
     'reset-dayof': function () { L.dayof = {}; saveL(); render(); },
@@ -740,7 +1093,8 @@
     'local-off': function () { L.localEdit = false; saveL(); plan = clone(published); render(); }
   };
   var C = {
-    task: function (el) { var id = el.dataset.id; plan.tasks[id] = Object.assign({}, plan.tasks[id], { done: el.checked }); commit(); },
+    task: function (el) { var id = el.dataset.id, on = el.checked, r = el.getBoundingClientRect(); plan.tasks[id] = Object.assign({}, plan.tasks[id], { done: on }); commit(); if (on) FX.burst(r.left + r.width / 2, r.top + r.height / 2, 24); },
+    movie: function (el) { var on = el.checked, r = el.getBoundingClientRect(); L.movies = L.movies || {}; L.movies[el.dataset.i] = on; saveL(); render(); if (on) FX.burst(r.left + r.width / 2, r.top + r.height / 2, 18); },
     dayof: function (el) { L.dayof[el.dataset.i] = el.checked; saveL(); render(); },
     pack: function (el) { L.pack[el.dataset.k] = el.checked; saveL(); render(); }
   };
@@ -752,12 +1106,14 @@
     var el = ev.target.closest('[data-chg]'); if (el && C[el.dataset.chg]) C[el.dataset.chg](el, ev);
   });
   app.addEventListener('input', function (ev) {
-    var el = ev.target.closest('[data-inp="est"]'); if (!el) return;
+    var el = ev.target.closest('[data-inp]'); if (!el) return;
+    if (el.dataset.inp === 'hc') { L.hc = num(el.value, 40); saveL(); updateHc(); return; }
     L.est[el.dataset.k] = el.type === 'checkbox' ? el.checked : el.value; saveL();
     var a = document.getElementById('est-out'), b = document.getElementById('save-out');
     if (a) a.innerHTML = estOut();
     if (b) b.innerHTML = '<h3>Your savings plan</h3>' + saveOut();
   });
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(function () { drawWheel(); });
 
   /* ---------------- boot ---------------- */
   function onRoute() {

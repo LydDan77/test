@@ -20,7 +20,7 @@
     return [
       '<title>Disneyland Family HQ</title>',
       '<meta name="claude:viewport-fit-sides" content="cover">',
-      '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=DM+Mono:wght@400;500&display=swap">',
+      '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Berkshire+Swash&family=DM+Mono:wght@400;500&family=Fredoka:wght@500;600;700&display=swap">',
       '<link rel="stylesheet" href="styles.css">',
       '<div id="app"><noscript><p style="padding:24px">This planner needs JavaScript turned on.</p></noscript></div>',
       '<script type="application/json" id="plan-data">' + safeJson(plan) + '</scr' + 'ipt>',
