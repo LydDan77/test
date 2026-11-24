@@ -53,6 +53,13 @@
   var L = LS.get('me', {});
   L.est = L.est || {}; L.saved = L.saved || []; L.pack = L.pack || {}; L.dayof = L.dayof || {}; L.stars = L.stars || {}; L.sub = L.sub || {};
   function saveL() { LS.set('me', L); }
+  // Updates this visitor has not seen. A first visit flags nothing; later visits flag what is new.
+  var unseen = {};
+  if (L.seenUpdates) plan.updates.forEach(function (u) { if (!L.seenUpdates[u.id]) unseen[u.id] = true; });
+  function markUpdatesSeen() {
+    var m = {}; plan.updates.forEach(function (u) { m[u.id] = true; });
+    if (JSON.stringify(m) !== JSON.stringify(L.seenUpdates || null)) { L.seenUpdates = m; saveL(); }
+  }
 
   var S = {
     route: 'hq',
@@ -166,10 +173,12 @@
   }
   function phaseOrder(id) { var i = (G.phases || []).findIndex(function (p) { return p.id === id; }); return i < 0 ? 99 : i; }
   function nextTasks(n) {
+    var rank = function (t) { return t.ph === 'now' ? 0 : t.due ? 1 : 2; };
     return allTasks().filter(function (t) { return !t.done; }).sort(function (a, b) {
-      if (a.due && b.due) return a.due - b.due;
-      if (!a.due && !b.due) return phaseOrder(a.ph) - phaseOrder(b.ph);
-      return a.due ? (a.ph === 'now' ? -1 : 1) : (a.ph === 'now' ? -1 : (b.ph === 'now' ? 1 : -1));
+      var ra = rank(a), rb = rank(b);
+      if (ra !== rb) return ra - rb;
+      if (ra === 1) return a.due - b.due;
+      return phaseOrder(a.ph) - phaseOrder(b.ph);
     }).slice(0, n);
   }
   function duePill(t) {
@@ -270,12 +279,13 @@
   /* ---------------- chrome ---------------- */
   function chrome() {
     var s = tripStart(), e = tripEnd(), td = today(), w;
-    var chip = function (label, n, href) { return '<a class="wait" href="' + href + '" aria-label="' + esc(label + ': ' + n) + '"><span class="wait-l">' + label.split(' ').map(esc).join('<br>') + '</span><span class="wait-n">' + esc(n) + '</span></a>'; };
-    if (!s) w = chip('Trip dates', 'TBD', '#when');
-    else if (td < s) w = chip('Days to go', dayDiff(td, s), '#plan');
-    else if (td <= e) w = chip('Trip day', dayDiff(s, td) + 1, '#trip');
-    else w = chip('Trip', 'Done', '#hq');
-    var tabs = NAV.map(function (n) { return '<a class="tab" href="#' + n[0] + '"' + (S.route === n[0] ? ' aria-current="page"' : '') + '>' + n[1] + '</a>'; }).join('');
+    var chip = function (l1, l2, n, href) { return '<a class="wait" href="' + href + '" aria-label="' + esc(l1 + ' ' + l2 + ': ' + n) + '"><span class="wait-l"><span>' + esc(l1) + '</span><span>' + esc(l2) + '</span></span><span class="wait-n">' + esc(n) + '</span></a>'; };
+    if (!s) w = chip('Trip', 'dates', 'TBD', '#when');
+    else if (td < s) w = chip('Days', 'to go', dayDiff(td, s), '#plan');
+    else if (td <= e) w = chip('Trip', 'day', dayDiff(s, td) + 1, '#trip');
+    else w = chip('Our', 'trip', 'Done', '#hq');
+    var fresh = plan.updates.some(function (u) { return unseen[u.id]; });
+    var tabs = NAV.map(function (n) { return '<a class="tab" href="#' + n[0] + '"' + (S.route === n[0] ? ' aria-current="page"' : '') + '>' + n[1] + (n[0] === 'hq' && fresh && S.route !== 'hq' ? '<span class="dot" title="New update"></span><span class="sr">, new update</span>' : '') + '</a>'; }).join('');
     var bar = '';
     if (S.mode === 'local' && L.localEdit) bar = '<div class="modebar"><div class="wrap"><span><b>Editing a copy on this device.</b> Nobody else sees these changes.</span><span class="rowflex"><button class="btn sm" data-act="copy-plan">Copy plan data</button><button class="btn sm" data-act="local-off">Stop editing</button></span></div></div>';
     if (S.stale) bar = '<div class="modebar"><div class="wrap"><span><b>You have unsaved edits from an earlier visit,</b> and the plan has been saved since then.</span><span class="rowflex"><button class="btn sm" data-act="stale-keep">Keep my edits</button><button class="btn sm" data-act="stale-drop">Discard them</button></span></div></div>';
@@ -294,6 +304,7 @@
   var V = {};
   function render() {
     var view = (V[S.route] || V.hq)();
+    if (S.route === 'hq') markUpdatesSeen();
     app.innerHTML = chrome() + '<main><div class="wrap">' + view + footer() + '</div></main>' + saveBar();
     var cur = app.querySelector('.tab[aria-current="page"]');
     if (cur && cur.scrollIntoView) { try { cur.scrollIntoView({ block: 'nearest', inline: 'nearest' }); } catch (e) { /* older browsers */ } }
@@ -343,7 +354,7 @@
     var ups = plan.updates.slice().sort(function (a, b) { return a.date < b.date ? 1 : -1; });
     h += sec('Family updates', 'News from the organizers, newest first.',
       ups.length ? '<div class="card"><div class="rows">' + ups.map(function (u) {
-        return '<div class="row"><span class="time">' + esc(fmtShort(pd(u.date))) + '<br>' + esc((pd(u.date) || today()).getFullYear()) + '</span><div class="row-main"><b>' + esc(u.title) + '</b><span>' + esc(u.body) + '</span></div>' + (canEdit() ? '<div class="row-side"><button class="btn sm" data-act="edit-update" data-id="' + u.id + '">Edit</button></div>' : '') + '</div>';
+        return '<div class="row"><span class="time">' + esc(fmtShort(pd(u.date))) + '<br>' + esc((pd(u.date) || today()).getFullYear()) + '</span><div class="row-main"><b>' + esc(u.title) + (unseen[u.id] ? ' <span class="pill poppy">New</span>' : '') + '</b><span>' + esc(u.body) + '</span></div>' + (canEdit() ? '<div class="row-side"><button class="btn sm" data-act="edit-update" data-id="' + u.id + '">Edit</button></div>' : '') + '</div>';
       }).join('') + '</div></div>' : '<div class="empty">No updates yet. Organizers post news here: dates locked, hotel booked, tickets bought.</div>',
       editBtn('add-update', 'Post an update'));
     return h;
@@ -355,8 +366,8 @@
     if (G.verdict) h += '<section class="sec"><div class="callout sun prose"><b>The short answer</b>' + G.verdict.map(function (p) { return '<p>' + esc(p) + '</p>'; }).join('') + '</div></section>';
 
     h += sec('Ranked windows', 'In the park\'s old ticket-book days an E ticket got you on the best rides. E-ticket windows here are the best fits for our crew.',
-      '<div class="grid two">' + (G.windows || []).map(function (w) {
-        return '<div class="ticket ' + (w.grade === 'E' ? 'pick' : '') + '"><div class="ticket-stub"><span class="ticket-letter">' + esc(w.grade) + '</span><span class="ticket-cap">ticket</span></div><div class="ticket-body"><h3>' + esc(w.title) + '</h3><div class="rowflex">' + crowdPill(w.crowd) + (w.tag ? '<span class="pill">' + esc(w.tag) + '</span>' : '') + '</div><p>' + esc(w.summary) + '</p>' +
+      '<div class="grid two">' + (G.windows || []).map(function (w, i, all) {
+        return '<div class="ticket ' + (w.grade === 'E' ? 'pick' : '') + (i === 0 && all.length % 2 ? ' wide' : '') + '"><div class="ticket-stub"><span class="ticket-letter">' + esc(w.grade) + '</span><span class="ticket-cap">ticket</span></div><div class="ticket-body"><h3>' + esc(w.title) + '</h3><div class="rowflex">' + crowdPill(w.crowd) + (w.tag ? '<span class="pill">' + esc(w.tag) + '</span>' : '') + '</div><p>' + esc(w.summary) + '</p>' +
           '<details class="more"><summary>Why, and what to watch</summary><div><b class="small">For it</b>' + bullets(w.pros) + '<b class="small">Against it</b>' + bullets(w.cons) + (w.school ? '<p class="small muted">' + esc(w.school) + '</p>' : '') + '</div></details>' +
           (canEdit() ? '<button class="btn sm" data-act="add-window" data-id="' + w.id + '" style="align-self:flex-start">Add to our shortlist</button>' : '') + '</div></div>';
       }).join('') + '</div>');
@@ -376,7 +387,7 @@
       '<div class="scroll"><div class="heat">' + (G.months || []).map(function (m, i) {
         return '<button class="heat-m lv' + m.crowd + '" data-act="month" data-i="' + i + '" aria-pressed="' + (i === mi) + '"><b>' + esc(m.k) + '</b><span>' + esc(m.hi + '° / ' + m.lo + '°') + '</span><span>' + esc(m.rain) + '</span></button>';
       }).join('') + '</div></div><div class="legend"><span><i class="lv1"></i>Very light</span><span><i class="lv2"></i>Light</span><span><i class="lv3"></i>Moderate</span><span><i class="lv4"></i>Busy</span><span><i class="lv5"></i>Packed</span><span>High / low °F and typical rain</span></div>' +
-      (mo ? '<div class="card"><h3>' + esc(mo.name) + '</h3><dl class="kv"><dt>Crowds</dt><dd>' + esc(mo.crowdNote) + '</dd><dt>Best bets</dt><dd>' + esc(mo.best) + '</dd><dt>Skip</dt><dd>' + esc(mo.worst) + '</dd><dt>What is on</dt><dd>' + esc(mo.on) + '</dd></dl></div>' : ''));
+      (mo ? '<div class="card"><h3>' + esc(mo.name) + '</h3><dl class="kv plain"><dt>Crowds</dt><dd>' + esc(mo.crowdNote) + '</dd><dt>Best bets</dt><dd>' + esc(mo.best) + '</dd><dt>Skip</dt><dd>' + esc(mo.worst) + '</dd><dt>What is on</dt><dd>' + esc(mo.on) + '</dd></dl></div>' : ''));
 
     var cols = G.ageDates || [];
     var withBirth = plan.crew.filter(function (m) { return pd(m.birth); });
