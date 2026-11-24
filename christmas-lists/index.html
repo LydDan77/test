@@ -133,7 +133,8 @@ body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--f
 .status { flex: none; font-size: .72rem; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; color: var(--pine); }
 .status::before { content: "\1F381  "; }
 .gift[aria-pressed="true"] { background: var(--pine-soft); }
-.gift[aria-pressed="true"] .box { background: var(--pine); border-color: var(--pine); animation: pop .3s ease; }
+.gift[aria-pressed="true"] .box { background: var(--pine); border-color: var(--pine); }
+.gift.pop .box { animation: pop .3s ease; }
 .gift[aria-pressed="true"] .name { color: var(--muted); text-decoration: line-through; }
 .gift.saving { opacity: .6; }
 @keyframes pop { 0% { transform: scale(.5); } 70% { transform: scale(1.25); } 100% { transform: scale(1); } }
@@ -157,9 +158,39 @@ body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--f
   flex: none; padding: .55rem 1.1rem; font: inherit; font-weight: 800; cursor: pointer;
   color: var(--surface); background: var(--kid); border: 0; border-radius: 999px;
 }
+.countdown { margin-top: .9rem !important; font-family: var(--font-display); font-size: 1.6rem; font-weight: 700 !important; }
+.tools {
+  background: var(--surface); border: 2px dashed var(--hero); border-radius: 1.4rem; padding: 1rem;
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr)); gap: .9rem 1rem; align-items: end;
+  margin-bottom: 1rem;
+}
+.field { display: flex; flex-direction: column; gap: .3rem; font-weight: 800; font-size: .9rem; min-width: 0; }
+.field input {
+  padding: .55rem .9rem; font: inherit; font-weight: 600; color: var(--ink); min-width: 0;
+  background: var(--bg); border: 2px solid var(--line); border-radius: 999px;
+}
+.field input:focus-visible, .tool-btns button:focus-visible, .shop:focus-visible, .rm:focus-visible { outline: 3px solid var(--hero); outline-offset: 2px; }
+.tool-btns { display: flex; flex-wrap: wrap; gap: .5rem; }
+.tool-btns button {
+  flex: 1 1 auto; padding: .6rem 1rem; font: inherit; font-weight: 800; cursor: pointer; white-space: nowrap;
+  color: #fff; background: var(--hero); border: 0; border-radius: 999px; box-shadow: 0 4px 0 var(--hero-deep);
+}
+.tool-btns button:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--hero-deep); }
+.row { display: flex; align-items: stretch; gap: .35rem; }
+.row .gift { flex: 1; min-width: 0; }
+.shop, .rm {
+  flex: none; display: grid; place-items: center; padding: 0 .7rem; border-radius: 1rem;
+  background: var(--bg); border: 2px solid transparent; color: var(--kid); font: inherit; font-size: .8rem; font-weight: 800;
+  text-decoration: none; cursor: pointer; white-space: nowrap;
+}
+.shop:hover, .rm:hover { border-color: var(--kid); }
+.picked .gift { border-color: var(--kid); animation: wiggle .5s ease 3; }
+@keyframes wiggle { 0%, 100% { transform: rotate(0); } 25% { transform: rotate(-1.5deg); } 75% { transform: rotate(1.5deg); } }
+.fx { position: fixed; z-index: 5; pointer-events: none; font-size: 1.4rem; }
+@media (prefers-reduced-motion: reduce) { .picked .gift { animation: none; } }
 .foot { text-align: center; color: var(--muted); font-weight: 700; }
 @media (prefers-reduced-motion: reduce) {
-  .lights::before, .lights::after, .gift[aria-pressed="true"] .box { animation: none; }
+  .lights::before, .lights::after, .gift.pop .box { animation: none; }
   .bar i, .gift { transition: none; }
 }
 </style>
@@ -170,6 +201,7 @@ body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--f
   <div class="lights" aria-hidden="true"></div>
   <h1>🎄 Girls' Christmas Lists 🎄</h1>
   <p>Tap a gift once you've bought it so nobody doubles up. Tap again to undo.</p>
+  <p class="countdown" id="countdown"></p>
   <div class="tally">
     <strong id="tally">Loading the lists…</strong>
     <label class="switch" for="hide-bought"><input type="checkbox" id="hide-bought"> Show only what's still needed</label>
@@ -177,6 +209,14 @@ body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--f
 </header>
 <div class="page">
   <div class="notice" id="notice" hidden></div>
+  <section class="tools" aria-label="Tools">
+    <label class="field" for="buyer"><span>🎅 Your name</span><input id="buyer" type="text" maxlength="30" autocomplete="given-name" placeholder="Shows who bought each gift"></label>
+    <label class="field" for="search"><span>🔎 Find a gift</span><input id="search" type="search" placeholder="Search all the lists"></label>
+    <div class="tool-btns">
+      <button type="button" id="pick">🎲 Pick one for me</button>
+      <button type="button" id="share">🔗 Copy link</button>
+    </div>
+  </section>
   <main class="lists" id="lists"></main>
   <p class="foot">Made with love for Aria, Ella &amp; Eyesie ❄️</p>
 </div>
@@ -190,8 +230,61 @@ body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--f
   var gifts = [];
   var loaded = false;
   var saving = {};
-  var hideBought = false;
-  try { hideBought = localStorage.getItem("hideBought") === "1"; } catch (e) {}
+  var hideBought = false, buyer = "", query = "", picked = null, confirmRm = null, popId = null;
+  try { hideBought = localStorage.getItem("hideBought") === "1"; buyer = localStorage.getItem("buyer") || ""; } catch (e) {}
+
+  var $buyer = document.getElementById("buyer");
+  $buyer.value = buyer;
+  $buyer.addEventListener("input", function () {
+    buyer = $buyer.value.trim();
+    try { localStorage.setItem("buyer", buyer); } catch (e) {}
+  });
+  document.getElementById("search").addEventListener("input", function (e) {
+    query = e.target.value.trim().toLowerCase(); render();
+  });
+  document.getElementById("pick").addEventListener("click", function () {
+    var open = gifts.filter(function (g) { return !g.purchased; });
+    if (!open.length) { notice(loaded ? "Everything is already purchased!" : "The lists are still loading."); return; }
+    picked = open[Math.floor(Math.random() * open.length)].id;
+    query = ""; document.getElementById("search").value = "";
+    render();
+    var row = $lists.querySelector('[data-gift="' + picked + '"]');
+    if (row) { row.scrollIntoView({ block: "center", behavior: "smooth" }); row.focus({ preventScroll: true }); }
+  });
+  document.getElementById("share").addEventListener("click", function (e) {
+    var b = e.currentTarget, url = location.origin + "/";
+    function done(ok) { notice(ok ? "" : "Copy this link to share: " + url); if (ok) { b.textContent = "\u2705 Link copied!"; setTimeout(function () { b.textContent = "\uD83D\uDD17 Copy link"; }, 2000); } }
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(url).then(function () { done(true); }, function () { done(false); });
+    else done(false);
+  });
+
+  (function countdown() {
+    var now = new Date(), y = now.getFullYear();
+    var today = new Date(y, now.getMonth(), now.getDate());
+    var xmas = new Date(y, 11, 25);
+    if (today > xmas) xmas = new Date(y + 1, 11, 25);
+    var days = Math.round((xmas - today) / 86400000);
+    document.getElementById("countdown").textContent =
+      days === 0 ? "\uD83C\uDF85 Merry Christmas!" : days + (days === 1 ? " sleep" : " sleeps") + " until Christmas";
+  })();
+
+  function burst(x, y) {
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches || !document.body.animate) return;
+    var bits = ["\uD83C\uDF81", "\u2B50", "\u2744\uFE0F", "\uD83C\uDF84", "\uD83C\uDF80", "\u2728"];
+    for (var i = 0; i < 14; i++) {
+      var s = el("span", "fx", bits[i % bits.length]);
+      s.style.left = x + "px"; s.style.top = y + "px";
+      document.body.appendChild(s);
+      var ang = Math.random() * 6.28, dist = 60 + Math.random() * 90;
+      s.animate([
+        { transform: "translate(-50%,-50%) scale(.4)", opacity: 1 },
+        { transform: "translate(" + (Math.cos(ang) * dist - 12) + "px," + (Math.sin(ang) * dist + 40) + "px) scale(1.1) rotate(" + (Math.random() * 240 - 120) + "deg)", opacity: 0 }
+      ], { duration: 900 + Math.random() * 400, easing: "cubic-bezier(.2,.7,.3,1)" }).onfinish = (function (n) { return function () { n.remove(); }; })(s);
+    }
+  }
+  function shopUrl(name) {
+    return "https://www.amazon.com/s?k=" + encodeURIComponent(name.replace(/eyesie-sized/i, "kid-sized"));
+  }
 
   var $lists = document.getElementById("lists");
   var $tally = document.getElementById("tally");
@@ -274,12 +367,15 @@ body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--f
     parts[kid.id] = { ul: ul, count: count, fill: fill, form: form, hasLink: !!kid.link };
   });
 
-  function toggle(g) {
+  function toggle(g, ev) {
     if (saving[g.id]) return;
     saving[g.id] = true;
     var want = !g.purchased;
-    g.purchased = want; render();
-    api({ action: "set", id: g.id, purchased: want })
+    g.purchased = want; g.buyer = want ? buyer : ""; picked = null;
+    popId = want ? g.id : null; render();
+    setTimeout(function () { popId = null; }, 350);
+    if (want && ev) burst(ev.clientX || innerWidth / 2, ev.clientY || innerHeight / 2);
+    api({ action: "set", id: g.id, purchased: want, buyer: buyer })
       .then(function (d) { delete saving[g.id]; apply(d); },
             function () { delete saving[g.id]; g.purchased = !want; failed(); render(); });
   }
@@ -297,26 +393,47 @@ body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--f
       p.fill.style.width = mine.length ? (100 * done / mine.length) + "%" : "0";
       p.form.hidden = !loaded;
 
-      var shown = hideBought ? mine.filter(function (g) { return !g.purchased; }) : mine;
+      var shown = mine.filter(function (g) {
+        return !(hideBought && g.purchased) && (!query || g.name.toLowerCase().indexOf(query) !== -1);
+      });
       p.ul.textContent = "";
       p.ul.hidden = false;
       if (!shown.length) {
         if (p.hasLink && !mine.length) { p.ul.hidden = true; return; }
-        var msg = !loaded ? "Loading…" : mine.length ? "Everything here is purchased." : "No gifts listed yet.";
+        var msg = !loaded ? "Loading…" : !mine.length ? "No gifts listed yet." : query ? "No matches here." : "Everything here is purchased.";
         var li0 = el("li"); li0.appendChild(el("div", "empty", msg)); p.ul.appendChild(li0);
         return;
       }
       shown.forEach(function (g) {
-        var li = el("li");
-        var b = el("button", "gift" + (saving[g.id] ? " saving" : ""));
+        var li = el("li", "row" + (picked === g.id ? " picked" : ""));
+        var b = el("button", "gift" + (saving[g.id] ? " saving" : "") + (popId === g.id ? " pop" : ""));
         b.type = "button";
         b.dataset.gift = g.id;
         b.setAttribute("aria-pressed", g.purchased ? "true" : "false");
         b.appendChild(el("span", "box", g.purchased ? "✓" : ""));
         b.appendChild(el("span", "name", g.name));
-        if (g.purchased) b.appendChild(el("span", "status", "Purchased"));
-        b.addEventListener("click", function () { toggle(g); });
-        li.appendChild(b); p.ul.appendChild(li);
+        if (g.purchased) b.appendChild(el("span", "status", g.buyer || "Purchased"));
+        b.addEventListener("click", function (ev) { toggle(g, ev); });
+        li.appendChild(b);
+        if (!g.purchased) {
+          var s = el("a", "shop", "Shop \u2197");
+          s.href = shopUrl(g.name); s.target = "_blank"; s.rel = "noopener";
+          s.setAttribute("aria-label", "Shop for " + g.name);
+          li.appendChild(s);
+        }
+        if (g.added) {
+          var asking = confirmRm === g.id;
+          var r = el("button", "rm", asking ? "Remove?" : "\u2715");
+          r.type = "button";
+          r.setAttribute("aria-label", asking ? "Confirm removing " + g.name : "Remove " + g.name);
+          r.addEventListener("click", function () {
+            if (confirmRm !== g.id) { confirmRm = g.id; render(); return; }
+            confirmRm = null;
+            api({ action: "remove", id: g.id }).then(apply, failed);
+          });
+          li.appendChild(r);
+        }
+        p.ul.appendChild(li);
       });
     });
     if (loaded) $tally.textContent = total ? bought + " of " + total + " gifts purchased" : "No gifts listed yet";
