@@ -612,8 +612,8 @@
     return e;
   }
   function defaultWhen() { var s = refDate(); if (!s) return '1'; return s < new Date(2027, 9, 6) ? '0' : s < new Date(2028, 9, 6) ? '1' : '2'; }
-  function estimate() {
-    var e = estDefaults(), c = G.costs || {}, bumps = num(e.when, 1);
+  function estimate(over) {
+    var e = Object.assign({}, estDefaults(), over || {}), c = G.costs || {}, bumps = num(e.when, 1);
     var tk = Math.pow(1 + (c.bumpTickets || 0.05), bumps), ot = Math.pow(1 + (c.bumpOther || 0.04), bumps);
     var days = Math.max(1, Math.min(5, Math.round(num(e.days, 4)))), nights = Math.max(0, num(e.nights, 5));
     var A = Math.max(0, num(e.adults)), K = Math.max(0, num(e.kids)), B = Math.max(0, num(e.babies));
@@ -639,6 +639,14 @@
     var r = estimate();
     return '<div class="scroll"><table class="tbl"><tbody>' + r.rows.map(function (x) { return '<tr><td>' + esc(x[0]) + '</td><td class="num">' + money(x[1]) + '</td></tr>'; }).join('') + '<tr><td>Cushion for surprises (10%)</td><td class="num">' + money(r.cushion) + '</td></tr><tr class="total"><td>Estimated total</td><td class="num">' + money(r.total) + '</td></tr></tbody></table></div><p class="small muted">About ' + money(r.total / Math.max(1, r.people)) + ' per person. Room rate used: ' + money(r.rate) + ' a night before tax.</p>';
   }
+  function crewOut(g, cc) {
+    return '<div class="rowflex" style="gap:18px 30px"><div class="stat"><span class="stat-n">' + money(g.total) + '</span><span class="stat-l">for everyone, cushion included</span></div><div class="stat"><span class="stat-n">' + money(g.total / Math.max(1, g.people)) + '</span><span class="stat-l">per person</span></div><div class="stat"><span class="stat-n">' + cc.adult + ' + ' + cc.child + '</span><span class="stat-l">adult and child tickets' + (cc.free ? ', ' + cc.free + ' free' : '') + '</span></div></div>' +
+      '<div class="scroll"><table class="tbl"><tbody>' + g.rows.map(function (x) { return '<tr><td>' + esc(x[0]) + '</td><td class="num">' + money(x[1]) + '</td></tr>'; }).join('') + '<tr><td>Cushion for surprises (10%)</td><td class="num">' + money(g.cushion) + '</td></tr></tbody></table></div>';
+  }
+  function crewEstimate() {
+    var e = estDefaults(), cc = crewCounts(refDate() || today()), people = cc.adult + cc.child + cc.free, rooms = Math.max(1, Math.ceil(people / 4));
+    return crewOut(estimate({ adults: cc.adult, kids: cc.child, babies: cc.free, rooms: rooms, nightly: '', ground: num(e.ground) * rooms, drive: num(e.drive) * rooms }), cc);
+  }
   var MILES = [[25, 'A quarter there'], [50, 'Halfway'], [75, 'Nearly there'], [100, 'Fully funded']];
   function saveOut() {
     var r = estimate(), saved = L.saved.reduce(function (a, x) { return a + num(x.amt); }, 0), left = Math.max(0, r.total - saved);
@@ -661,6 +669,12 @@
       '<div class="fgrid">' + n('flightPP', 'Flight per person') + n('drive', 'Driving total') + n('ground', 'Airport rides, parking') + n('extras', 'Souvenirs per person') + '</div></div>' +
       '<div class="stack"><div class="card lift" id="est-out">' + estOut() + '</div><div class="card" id="save-out">' + '<h3>Your savings plan</h3>' + saveOut() + '</div>' +
       '<div class="card"><div class="rowflex between"><h3>Savings log</h3><button class="btn sm" data-act="add-saved">Add money saved</button></div>' + (L.saved.length ? '<div class="rows">' + L.saved.map(function (x, i) { return '<div class="row"><div class="row-main"><b>' + money(num(x.amt)) + '</b><span class="small muted">' + esc(x.note || '') + ' ' + esc(fmt(pd(x.date))) + '</span></div><div class="row-side"><button class="btn sm" data-act="del-saved" data-i="' + i + '">Remove</button></div></div>'; }).join('') + '</div>' : '<p class="muted small">Log each deposit or gift card you put toward the trip and watch the bar fill.</p>') + '</div></div></div>');
+    var cc = crewCounts(refDate() || today()), people = cc.adult + cc.child + cc.free, rooms = Math.max(1, Math.ceil(people / 4));
+    if (people > 1) {
+      var g = estimate({ adults: cc.adult, kids: cc.child, babies: cc.free, rooms: rooms, nightly: '', ground: num(e.ground) * rooms, drive: num(e.drive) * rooms });
+      h += sec('The whole crew', 'All ' + people + ' of us, worked out from the Crew page with the same choices as the estimate above and ' + rooms + ' rooms. Change a choice up there and this follows.',
+        '<div class="card gold" id="crew-out">' + crewOut(g, cc) + '</div>');
+    }
     if (G.prices) h += sec('Real prices right now', 'As of ' + (G.asOfLabel || '') + '. Disneyland has raised prices every October for five years running.', '<div class="card"><div class="scroll"><table class="tbl"><thead><tr><th>What</th><th class="num">Price</th><th>Good to know</th></tr></thead><tbody>' + G.prices.map(function (p) { return '<tr><td><b>' + esc(p.item) + '</b></td><td class="num">' + esc(p.price) + '</td><td class="small">' + esc(p.note || '') + '</td></tr>'; }).join('') + '</tbody></table></div></div>');
     if (G.benchmarks) h += sec('What other families spend', '', tipCards(G.benchmarks, 'sm'));
     h += sec('Ways to save', 'The tactics the Disneyland money guides agree on.', tipCards(G.saving));
@@ -673,7 +687,7 @@
   V.stay = function () {
     var s = tripStart();
     var h = head('Stay and travel', 'Where we sleep and how we get there', G.stayLede || '');
-    h += sec('Four ways to house a big crew', 'Rough totals for about 14 people for 5 nights, in 2027 dollars.', '<div class="grid two">' + (G.lodgingPlans || []).map(function (p, i) {
+    h += sec('Four ways to house a big crew', 'Rough totals for our 15 for 5 nights, in 2027 dollars.', '<div class="grid two">' + (G.lodgingPlans || []).map(function (p, i) {
       return '<div class="ticket ' + (i === 0 ? 'pick' : '') + '"><div class="ticket-stub"><span class="ticket-letter">' + (i + 1) + '</span><span class="ticket-cap">' + (i === 0 ? 'Top pick' : 'Option') + '</span></div><div class="ticket-body"><h3>' + esc(p.t) + '</h3><span class="pill sun" style="align-self:flex-start">' + esc(p.cost) + '</span><p>' + esc(p.d) + '</p><details class="more"><summary>For and against</summary><div><b class="small">For it</b>' + bullets(p.pros) + '<b class="small">Against it</b>' + bullets(p.cons) + '</div></details></div></div>';
     }).join('') + '</div>');
     h += sec('Hotels worth a look', 'Walk times are to the main gate. Rates move a lot by date, so treat them as a starting point.', '<div class="card"><div class="scroll"><table class="tbl"><thead><tr><th>Hotel</th><th>Walk</th><th>Big-family rooms</th><th>Perks</th><th>Watch for</th></tr></thead><tbody>' + (G.hotels || []).map(function (x) {
@@ -1113,6 +1127,7 @@
     var a = document.getElementById('est-out'), b = document.getElementById('save-out');
     if (a) a.innerHTML = estOut();
     if (b) b.innerHTML = '<h3>Your savings plan</h3>' + saveOut();
+    var g = document.getElementById('crew-out'); if (g) g.innerHTML = crewEstimate();
   });
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(function () { drawWheel(); });
 

@@ -225,7 +225,7 @@ window.GUIDE = {
   benchmarks: [
     { t: "A family of four", d: "One expert budget for three adults and a child, flights included: about $6,000 on a budget, $7,200 in the middle and $10,500 at the high end, at late-2026 prices." },
     { t: "Per person", d: "That works out to roughly $1,500 to $2,600 each." },
-    { t: "Our whole crew", d: "At the middle level, about 14 people comes to something like $25,000 today. Sharing rooms and a free toddler bring it down." },
+    { t: "Our whole crew", d: "Fifteen of us at the middle level comes to about $28,000 with flights at today's prices: nine adults, five ticketed kids, and August free. The whole-crew estimate above recalculates as the roster and choices change." },
     { t: "The saving pace", d: "A $7,200 household goal is about $600 a month over 12 months, $400 over 18, or $300 over 24." }
   ],
   saving: [
@@ -259,13 +259,13 @@ window.GUIDE = {
   /* ============ STAY & TRAVEL ============ */
   stayLede: "The resort buses stopped running in 2026, so being able to walk back for naps matters more than ever. Hold something refundable early. We can always trade up later.",
   lodgingPlans: [
-    { t: "A block of family rooms within a ten-minute walk", cost: "About $6,500 to $10,500", d: "Four refundable family rooms or suites at one hotel across the street, or two two-bedroom suites plus a room at a suite hotel. Each household gets its own door, and naps are a short walk away.",
+    { t: "A block of family rooms within a ten-minute walk", cost: "About $6,500 to $10,500", d: "Four or five refundable family rooms or suites at one hotel across the street, or two two-bedroom suites plus two rooms at a suite hotel. Each household gets its own door, and naps are a short walk away.",
       pros: ["Walk back for naps and pool time", "Cancel or re-price any time", "Each household has its own space", "Grandparents get their own room"], cons: ["The group is spread over several rooms", "Parking adds $25 to $47 a car each night"] },
     { t: "Disney villas on rented points", cost: "About $11,000 to $12,000 in low season", d: "Two two-bedroom villas at the Grand Californian or Disneyland Hotel, booked through a Disney Vacation Club points broker. On-site, with kitchens, washers and beds for 18.",
       pros: ["Inside the resort, steps from the gates", "Kitchens and laundry", "Everyone in two big units"], cons: ["Paid up front and close to non-refundable", "Very few villas: ask 11 months ahead", "Peak dates can double the cost", "Disney tightened its rules on rented points in 2026, so use an established broker"] },
     { t: "Disney hotel rooms", cost: "$13,000 to $20,000; Grand Californian $28,000+", d: "Four standard rooms at the Disneyland Hotel or Pixar Place. The Grand Californian has its own gate into California Adventure.",
       pros: ["The full Disney bubble", "One free Lightning Lane ride per guest per stay", "Refundable until about 4 days out"], cons: ["Two to three times the price of across the street", "Early park entry for hotel guests ended in 2026", "Rooms sleep five at most"] },
-    { t: "One big rental house", cost: "About $4,000 to $6,700", d: "A permitted five- or six-bedroom house sleeping 14 to 16, usually a 10 to 15 minute drive away. The cheapest per person, with a kitchen and a living room for evenings together.",
+    { t: "One big rental house", cost: "About $4,000 to $6,700", d: "A permitted five- or six-bedroom house sleeping 15 or 16, usually a 10 to 15 minute drive away. The cheapest per person, with a kitchen and a living room for evenings together.",
       pros: ["Lowest cost", "Everyone under one roof", "Full kitchen and laundry"], cons: ["A drive each way: $40 parking per car per day, or rideshares with car seats", "No quick trip back for August's nap", "Anaheim stopped issuing rental permits in 2016: ask for the permit number", "Stricter cancellation terms"] }
   ],
   hotels: [
@@ -308,7 +308,7 @@ window.GUIDE = {
   transport: [
     { t: "The resort buses are gone", d: "The ART buses that linked hotels to the parks stopped on Mar 31, 2026. A few paid hotel shuttles replaced them: one serves the big convention-area hotels for about $6 an adult a day, another serves Garden Grove hotels, and Disney still runs its Toy Story parking lot shuttle. They drop off on the west side of Downtown Disney. For most hotels it is now walk or rideshare." },
     { t: "Car seats", d: "Uber's car-seat option offers one seat and is not confirmed in Orange County. Lansky's private cars can supply boosters and toddler seats if you ask when booking. With several little ones, bring your own (airlines check them free) or rent a minivan." },
-    { t: "Vans from the airport", d: "A private car from LAX with Lansky runs about $180 each way for up to six people. From Orange County, a shared shuttle is about $15 an adult and $7.50 a child." },
+    { t: "Vans from the airport", d: "A private car from LAX with Lansky runs about $180 each way for up to six people, so all 15 of us would need three. From Orange County, a shared shuttle is about $15 an adult and $7.50 a child." },
     { t: "Driving and parking", d: "Disney's parking structures are $40 a car per day. Hotels near the parks charge about $25 to $47 a night. From a rental house, that adds up across several cars." },
     { t: "Flying with August", d: "On US airlines a child under 2 can fly free on a lap; bring proof of age. Car seats and strollers check free, and a stroller can be gate-checked." },
     { t: "By train", d: "Amtrak's Pacific Surfliner and Metrolink stop at Anaheim's ARTIC station, about three miles from the parks. It is a rideshare from there." }
@@ -445,7 +445,7 @@ window.GUIDE = {
     { t: "Be early", d: "Reach the security line 45 to 60 minutes before opening. The first two hours are worth the whole afternoon. Disney hotel guests no longer get a head start." },
     { t: "Take the midday break", d: "Leave around noon, nap and swim, come back about four for dinner, the parade and fireworks." },
     { t: "One anchor a day", d: "Pick one thing all of us do together each day. Around it, split by height and energy and regroup at meals." },
-    { t: "A realistic pace", d: "A group of 14 manages seven to ten attractions a day, ten to thirteen with Lightning Lane. Plan for that and it feels like winning." },
+    { t: "A realistic pace", d: "A group of 15 manages seven to ten attractions a day, ten to thirteen with Lightning Lane. Plan for that and it feels like winning." },
     { t: "Disneyland Park first hour", d: "Start in Fantasyland. Unless you are at the very front of the crowd, skip the Peter Pan line: ride Alice in Wonderland and Dumbo, head to Toontown, and come back for Peter Pan later. The thrill-seekers peel off to Space Mountain or Indiana Jones and meet up for a snack." },
     { t: "California Adventure first hour", d: "Tall kids go straight to Radiator Springs Racers while the little ones ride Luigi's and Mater's next door. Then Toy Story Midway Mania or WEB SLINGERS." },
     { t: "One app, everyone linked", d: "Link every ticket to one Disney account, or one per household. Whoever holds the phone can book rides and order food for the group." }
@@ -455,7 +455,7 @@ window.GUIDE = {
     { t: "How the experts use Multi Pass", d: "Buy it one day at a time, not for the whole trip. Book Space Mountain first, or Roger Rabbit with little kids. Pirates and Jungle Cruise have no Lightning Lane, so ride them mid-morning. Children under 3 need no pass." },
     { t: "Single Pass", d: "A separate one-ride purchase for the two rides Multi Pass leaves out: Rise of the Resistance and Radiator Springs Racers. Prices move between about $12 and $30." },
     { t: "Premier Pass", d: "One skip-the-line entry at every Lightning Lane ride for roughly $300 to $500 a person. For our group that is thousands of dollars a day. Skip it." },
-    { t: "Is it worth it for us?", d: "Multi Pass for 15 ticketed people is about $525 a day. It pays off on a Disneyland Park day for kids tall enough for the headliners, and much less for little ones, because most small-child rides have no Lightning Lane at all. Buy it for one day, pair it with Rider Switch, and see whether we want a second." },
+    { t: "Is it worth it for us?", d: "Multi Pass for our 14 ticketed riders is about $490 a day (August needs none). It pays off on a Disneyland Park day for kids tall enough for the headliners, and much less for little ones, because most small-child rides have no Lightning Lane at all. Buy it for one day, pair it with Rider Switch, and see whether we want a second." },
     { t: "The Disney hotel perk", d: "Each guest aged 3 and up staying at a Disney hotel gets one free Multi Pass ride per stay." }
   ],
   sampleDays: [
