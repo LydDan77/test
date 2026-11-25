@@ -101,7 +101,7 @@
     LS.set('draft', { base: published.rev, plan: plan, pending: next.rev });
     var attempt = function (retry) {
       return S.artifact.publish(SHELL.fullDocument(next)).then(function () {
-        LS.del('draft'); S.dirty = false; S.saving = false;
+        LS.del('draft'); S.dirty = false; S.saving = false; S.blocked = false;
         published = next; plan = clone(next); render(); toast('Saved for everyone');
       }, function (err) {
         var code = err && err.code;
@@ -111,7 +111,7 @@
         if (code === 'conflict') toast('Someone else saved first. Loading their version.');
         else if (code === 'rate_limited') toast('Saving too often. Wait a minute, then save again.');
         else if (code === 'too_large' || code === 'invalid_content' || code === 'transform_error') toast('The plan could not be saved. Shorten long notes and try again.');
-        else if (code === 'not_writer' || code === 'not_granted' || code === 'not_declared' || code === 'consent_required' || code === 'capability_disabled' || code === 'capability_removed') { S.mode = 'viewer'; S.dirty = false; toast('This view cannot save changes. Your edits are kept on this device.'); }
+        else if (code === 'not_writer' || code === 'not_granted' || code === 'not_declared' || code === 'consent_required' || code === 'capability_disabled' || code === 'capability_removed') { S.blocked = true; toast('This page could not save here. Your edits are safe on this device.'); }
         else toast('Could not save right now. Your edits are kept on this device.');
         render();
       });
@@ -301,6 +301,7 @@
   }
   function saveBar() {
     if (S.mode !== 'owner' || !S.dirty) return '';
+    if (S.blocked) return '<div class="savebar"><div class="savebar-in"><span><b>Saving from this page did not work.</b> Your edits are safe on this device. Copy the plan data, paste it to Claude and ask it to publish your changes.</span><span class="rowflex"><button class="btn ghost" data-act="discard">Discard</button><button class="btn ghost" data-act="save">Try again</button><button class="btn primary" data-act="copy-plan">Copy plan data</button></span></div></div>';
     return '<div class="savebar"><div class="savebar-in"><span><b>Unsaved changes.</b> Only you can see them so far.</span><span class="rowflex"><button class="btn ghost" data-act="discard"' + (S.saving ? ' disabled' : '') + '>Discard</button><button class="btn primary" data-act="save"' + (S.saving ? ' disabled' : '') + '>' + (S.saving ? 'Saving…' : 'Save for everyone') + '</button></span></div></div>';
   }
   /* ---------------- the night sky: stars, skyline, fireworks ---------------- */
@@ -1073,7 +1074,7 @@
       var names = (G.rides || []).filter(function (r) { return L.stars[rideKey(r)]; }).map(function (r) { return '- ' + r.n + ' (' + (r.p === 'DL' ? 'Disneyland Park' : 'California Adventure') + ')'; });
       copyText('My Disneyland must-dos:\n' + names.join('\n'), 'List copied. Paste it into a text to the organizers.');
     },
-    'copy-plan': function () { copyText(JSON.stringify(plan, null, 2), 'Plan data copied'); },
+    'copy-plan': function () { copyText('Disneyland Family HQ plan data:\n' + JSON.stringify(plan), 'Plan data copied. Paste it to Claude.'); },
     'add-saved': function () {
       openForm({ title: 'Add money saved', fields: [{ k: 'amt', label: 'Amount in dollars', type: 'number', req: true }, { k: 'note', label: 'Note', ph: 'e.g. December transfer, gift card from Grandma' }], onSave: function (v) {
         var total = Math.max(1, estimate().total), sum = function () { return L.saved.reduce(function (a, x) { return a + num(x.amt); }, 0); }, before = sum() / total * 100;
@@ -1086,7 +1087,7 @@
     'reset-dayof': function () { L.dayof = {}; saveL(); render(); },
     'reset-pack': function () { L.pack = {}; saveL(); render(); },
     'save': saveForEveryone,
-    'discard': function () { LS.del('draft'); plan = clone(published); S.dirty = false; render(); toast('Changes discarded'); },
+    'discard': function () { LS.del('draft'); plan = clone(published); S.dirty = false; S.blocked = false; render(); toast('Changes discarded'); },
     'stale-keep': function () { plan = normalize(S.stale.plan); S.stale = null; S.dirty = true; LS.set('draft', { base: published.rev, plan: plan }); render(); },
     'stale-drop': function () { S.stale = null; LS.del('draft'); render(); },
     'local-on': function () { L.localEdit = true; saveL(); restoreLocal(); render(); toast('Editing a copy on this device'); },
