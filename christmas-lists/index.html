@@ -207,7 +207,7 @@ body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--f
 <header class="hero">
   <div class="lights" aria-hidden="true"></div>
   <h1>🎄 Girls' Christmas Lists 🎄</h1>
-  <p>Type your name, then tap a gift to claim it. Each gift can be claimed by one person, and only they can undo it.</p>
+  <p>Tap a gift to claim it. Each gift can be claimed by one person, and only they can undo it. Nobody sees who claimed what.</p>
   <p class="countdown" id="countdown"></p>
   <div class="tally">
     <strong id="tally">Loading the lists…</strong>
@@ -217,7 +217,6 @@ body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--f
 <div class="page">
   <div class="notice" id="notice" hidden></div>
   <section class="tools" aria-label="Tools">
-    <label class="field" for="buyer"><span>🎅 Your name</span><input id="buyer" type="text" maxlength="30" autocomplete="given-name" placeholder="Needed to claim a gift"></label>
     <label class="field" for="search"><span>🔎 Find a gift</span><input id="search" type="search" placeholder="Search all the lists"></label>
     <div class="tool-btns">
       <button type="button" id="pick">🎲 Pick one for me</button>
@@ -245,15 +244,9 @@ body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--f
   var gifts = [];
   var loaded = false;
   var saving = {};
-  var hideBought = false, buyer = "", query = "", picked = null, confirmRm = null, popId = null;
-  try { hideBought = localStorage.getItem("hideBought") === "1"; buyer = localStorage.getItem("buyer") || ""; } catch (e) {}
+  var hideBought = false, query = "", picked = null, confirmRm = null, popId = null;
+  try { hideBought = localStorage.getItem("hideBought") === "1"; localStorage.removeItem("buyer"); } catch (e) {}
 
-  var $buyer = document.getElementById("buyer");
-  $buyer.value = buyer;
-  $buyer.addEventListener("input", function () {
-    buyer = $buyer.value.trim();
-    try { localStorage.setItem("buyer", buyer); } catch (e) {}
-  });
   document.getElementById("search").addEventListener("input", function (e) {
     query = e.target.value.trim().toLowerCase(); render();
   });
@@ -424,19 +417,14 @@ body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--f
 
   function toggle(g, ev) {
     if (saving[g.id]) return;
-    if (g.purchased && !g.canUndo) { notice((g.buyer || "Someone") + " already claimed that one. Only they can undo it."); return; }
-    if (!g.purchased && !buyer) {
-      notice("Type your name first so everyone knows who is buying it.");
-      $buyer.scrollIntoView({ block: "center" }); $buyer.focus({ preventScroll: true });
-      return;
-    }
+    if (g.purchased && !g.canUndo) { notice("Someone already claimed that one. Only they can undo it."); return; }
     saving[g.id] = true;
     var want = !g.purchased;
-    g.purchased = want; g.buyer = want ? buyer : ""; g.mine = want; g.canUndo = want; picked = null;
+    g.purchased = want; g.mine = want; g.canUndo = want; picked = null;
     popId = want ? g.id : null; render();
     setTimeout(function () { popId = null; }, 350);
     if (want && ev) burst(ev.clientX || innerWidth / 2, ev.clientY || innerHeight / 2);
-    api({ action: "set", id: g.id, purchased: want, buyer: buyer })
+    api({ action: "set", id: g.id, purchased: want })
       .then(function (d) { delete saving[g.id]; apply(d); },
             function (e) { delete saving[g.id]; g.purchased = !want; failed(e); render(); });
   }
@@ -474,7 +462,7 @@ body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--f
         b.setAttribute("aria-pressed", g.purchased ? "true" : "false");
         b.appendChild(el("span", "box", g.purchased ? "✓" : ""));
         b.appendChild(el("span", "name", g.name));
-        if (g.purchased) b.appendChild(el("span", "status", (g.buyer || "Claimed") + (g.mine ? " (you)" : "")));
+        if (g.purchased) b.appendChild(el("span", "status", "Claimed" + (g.mine ? " by you" : "")));
         b.addEventListener("click", function (ev) { toggle(g, ev); });
         li.appendChild(b);
         if (!g.purchased) {

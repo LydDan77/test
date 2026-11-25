@@ -1,7 +1,7 @@
 // Shared state lives entirely in Vercel Blob path names, so every read is one
 // consistent list() call and nothing depends on cached blob contents:
 //   lock/<id>                               first-come lock; creating it fails if it exists
-//   bought/<id>/<owner>/<base64url buyer>   who claimed a gift (owner = hash of their device key)
+//   bought/<id>/<owner>/_                   a claim (owner = hash of the claimer's device key; no names are kept or shown)
 //   added/<kid>/<id>/<base64url name>/<owner>   a gift someone added on the page
 // Older markers without an owner (bought/<id>[/<buyer>], added/<kid>/<id>/<name>)
 // are still read; only the organizer can change those.
@@ -92,7 +92,7 @@ function view(gifts, me, admin) {
       const mine = g.purchased && !!me && g.owner === me;
       return {
         id: g.id, kid: g.kid, name: g.name, order: g.order, added: !!g.added,
-        purchased: g.purchased, buyer: g.buyer, mine,
+        purchased: g.purchased, mine,
         canUndo: g.purchased && (mine || admin),
         canRemove: !!g.added && (admin || (!!me && g.addedBy === me && (!g.purchased || mine))),
       };
@@ -117,9 +117,8 @@ export default async function handler(req, res) {
         const g = gifts.find((x) => x.id === id);
         if (!g) return fail(400, "That gift isn't on the list any more.");
         if (body.purchased) {
-          const buyer = String(body.buyer || "").trim().slice(0, 30);
-          if (!me || !buyer) return fail(400, "Type your name first so everyone knows who is buying it.");
-          if (g.purchased) return fail(409, `${g.buyer || "Someone"} already claimed that one.`);
+          if (!me) return fail(400, "This browser can't claim gifts. Try reloading the page.");
+          if (g.purchased) return fail(409, "Someone already claimed that one.");
           const stale = locks.get(id);
           if (stale && Date.now() - new Date(stale.uploadedAt).getTime() > STALE_LOCK_MS) await del(stale.url);
           try {
@@ -128,10 +127,10 @@ export default async function handler(req, res) {
           } catch {
             return fail(409, "Someone else just claimed that one.");
           }
-          await put(`bought/${id}/${me}/${b64(buyer)}`, "1", { ...marker, allowOverwrite: true });
+          await put(`bought/${id}/${me}/_`, "1", { ...marker, allowOverwrite: true });
         } else if (g.purchased) {
           if (!(admin || (me && g.owner === me))) {
-            return fail(403, `Only ${g.buyer || "the person who claimed it"} can undo that.`);
+            return fail(403, "Only the person who claimed it can undo that.");
           }
           const urls = urlsFor(blobs, claimPaths(id));
           if (urls.length) await del(urls);
