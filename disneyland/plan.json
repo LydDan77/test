@@ -1,13 +1,13 @@
 {
   "v": 1,
-  "rev": 2,
+  "rev": 3,
   "saved": "2026-11-25",
   "trip": {
-    "name": "Our Disneyland Adventure",
+    "name": "Our Disney World Adventure",
     "start": "",
     "end": "",
-    "nights": 5,
-    "parkDays": 4,
+    "nights": 7,
+    "parkDays": 5,
     "nextMeeting": ""
   },
   "crew": [
@@ -188,13 +188,19 @@
       "id": "u-start",
       "date": "2026-11-24",
       "title": "Trip HQ is open",
-      "body": "This is our one place for the Disneyland trip: when to go, what it costs, what to book and when, and the plan for each park day. First jobs: add everyone to the Crew page, then pick our top two date windows on the When to go page."
+      "body": "This is our one place for the Disney World trip: when to go, what it costs, what to book and when, and the plan for each park day. First jobs: add everyone to the Crew page, then pick our top two date windows on the When to go page."
     },
     {
       "id": "u-fifteen",
       "date": "2026-11-25",
       "title": "We are 15: nine grown-ups and six kids",
       "body": "The roster now has a spot for everyone. Organizers: swap the placeholders for real first names and households, and add each child's birth month and height so the ticket counts and the ride chart are exact."
+    },
+    {
+      "id": "u-wdw",
+      "date": "2026-11-25",
+      "title": "Change of plan: we are going to Walt Disney World",
+      "body": "Florida, not California. This site now covers the four Disney World parks, Orlando hotels and houses, and the Florida booking rules."
     }
   ],
   "roles": {},

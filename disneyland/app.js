@@ -482,7 +482,7 @@
     if (S.route === 'hq') markUpdatesSeen();
     R.top.innerHTML = chrome();
     renderHero();
-    R.view.innerHTML = view + footer();
+    R.view.innerHTML = (G.notice ? '<div class="callout sun" style="margin-bottom:24px"><b>Heads up</b><p>' + esc(G.notice) + '</p></div>' : '') + view + footer();
     R.bars.innerHTML = saveBar();
     var cur = R.top.querySelector('.tab[aria-current="page"]');
     if (cur && cur.scrollIntoView) { try { cur.scrollIntoView({ block: 'nearest', inline: 'nearest' }); } catch (e) { /* older browsers */ } }
