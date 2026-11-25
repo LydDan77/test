@@ -195,6 +195,19 @@ body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--f
 .org button, .org input { font: inherit; font-weight: 700; padding: .4rem .9rem; border-radius: 999px; border: 2px solid var(--line); background: var(--surface); color: var(--ink); }
 .org button { cursor: pointer; }
 .org button:focus-visible, .org input:focus-visible { outline: 3px solid var(--hero); outline-offset: 2px; }
+dialog.ask {
+  border: 3px solid var(--hero); border-radius: 1.6rem; padding: 1.4rem 1.25rem 1.1rem; max-width: min(24rem, calc(100vw - 32px));
+  background: var(--surface); color: var(--ink); text-align: center; box-shadow: 0 8px 0 var(--hero-deep);
+}
+dialog.ask::backdrop { background: rgba(10, 20, 18, .6); }
+dialog.ask h2 { font-family: var(--font-display); font-size: 2rem; line-height: 1.05; margin: 0 0 .4rem; color: var(--hero); }
+@media (prefers-color-scheme: dark) { dialog.ask h2 { color: #ff8fa3; } }
+dialog.ask .what { font-weight: 800; font-size: 1.1rem; margin: 0 0 .5rem; overflow-wrap: anywhere; }
+dialog.ask p { margin: 0 0 1rem; color: var(--muted); font-weight: 600; }
+dialog.ask .btns { display: flex; flex-wrap: wrap; gap: .6rem; justify-content: center; }
+dialog.ask button { font: inherit; font-weight: 800; padding: .65rem 1.2rem; border-radius: 999px; cursor: pointer; border: 2px solid var(--line); background: var(--bg); color: var(--ink); }
+dialog.ask button.yes { background: var(--pine); border-color: var(--pine); color: var(--surface); }
+dialog.ask button:focus-visible { outline: 3px solid var(--hero); outline-offset: 2px; }
 .foot { text-align: center; color: var(--muted); font-weight: 700; }
 @media (prefers-reduced-motion: reduce) {
   .lights::before, .lights::after, .gift.pop .box { animation: none; }
@@ -207,7 +220,7 @@ body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--f
 <header class="hero">
   <div class="lights" aria-hidden="true"></div>
   <h1>🎄 Girls' Christmas Lists 🎄</h1>
-  <p>Tap a gift to claim it. Each gift can be claimed by one person, and only they can undo it. Nobody sees who claimed what.</p>
+  <p>Tap a gift to claim it. Once you confirm, it's locked in so nobody else can pick it or change it.</p>
   <p class="countdown" id="countdown"></p>
   <div class="tally">
     <strong id="tally">Loading the lists…</strong>
@@ -234,6 +247,15 @@ body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--f
   </div>
   <p class="foot">Made with love for Aria, Ella &amp; Eyesie ❄️</p>
 </div>
+<dialog class="ask" id="ask" aria-labelledby="ask-title">
+  <h2 id="ask-title"></h2>
+  <div class="what" id="ask-what"></div>
+  <p id="ask-text"></p>
+  <div class="btns">
+    <button type="button" id="ask-no"></button>
+    <button type="button" class="yes" id="ask-yes"></button>
+  </div>
+</dialog>
 <script>
 (function () {
   var KIDS = [
@@ -415,9 +437,37 @@ body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--f
     parts[kid.id] = { ul: ul, count: count, fill: fill, form: form, hasLink: !!kid.link };
   });
 
+  // Every claim and every release goes through this confirmation pop-up.
+  var $ask = document.getElementById("ask"), askDone = null;
+  function ask(title, what, text, yes, no) {
+    document.getElementById("ask-title").textContent = title;
+    document.getElementById("ask-what").textContent = what;
+    document.getElementById("ask-text").textContent = text;
+    document.getElementById("ask-yes").textContent = yes;
+    document.getElementById("ask-no").textContent = no;
+    return new Promise(function (resolve) {
+      askDone = resolve;
+      if ($ask.showModal) { $ask.showModal(); document.getElementById("ask-no").focus(); }
+      else { askDone = null; resolve(window.confirm(title + "\n" + what + "\n\n" + text)); }
+    });
+  }
+  function answer(ok) { var f = askDone; askDone = null; if ($ask.open) $ask.close(); if (f) f(ok); }
+  document.getElementById("ask-yes").addEventListener("click", function () { answer(true); });
+  document.getElementById("ask-no").addEventListener("click", function () { answer(false); });
+  $ask.addEventListener("close", function () { answer(false); });
+  $ask.addEventListener("click", function (e) { if (e.target === $ask) answer(false); });
+
   function toggle(g, ev) {
+    if (saving[g.id] || askDone) return;
+    if (g.purchased && !g.canUndo) { notice("That one is already claimed and locked in. Pick another gift!"); return; }
+    var x = ev && ev.clientX, y = ev && ev.clientY;
+    var q = g.purchased
+      ? ask("Give up this gift?", g.name, organizer && !g.mine ? "This releases someone else's claim so the gift is open for anyone again." : "It goes back on the list for someone else to claim.", "Yes, release it", "Keep it claimed")
+      : ask("Claim this gift?", g.name, "Once you claim it, it's locked in. Nobody else can pick it or undo it.", "Yes, claim it \uD83C\uDF81", "Not yet");
+    q.then(function (ok) { if (ok) commit(g, { clientX: x, clientY: y }); });
+  }
+  function commit(g, ev) {
     if (saving[g.id]) return;
-    if (g.purchased && !g.canUndo) { notice("Someone already claimed that one. Only they can undo it."); return; }
     saving[g.id] = true;
     var want = !g.purchased;
     g.purchased = want; g.mine = want; g.canUndo = want; picked = null;
