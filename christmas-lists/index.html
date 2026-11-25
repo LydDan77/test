@@ -188,6 +188,13 @@ body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--f
 @keyframes wiggle { 0%, 100% { transform: rotate(0); } 25% { transform: rotate(-1.5deg); } 75% { transform: rotate(1.5deg); } }
 .fx { position: fixed; z-index: 5; pointer-events: none; font-size: 1.4rem; }
 @media (prefers-reduced-motion: reduce) { .picked .gift { animation: none; } }
+.gift.taken { cursor: not-allowed; opacity: .75; }
+.gift.taken:hover { border-color: transparent; transform: none; }
+.gift.taken .status::before { content: "\\1F512  "; }
+.org { display: flex; flex-wrap: wrap; gap: .5rem; justify-content: center; align-items: center; }
+.org button, .org input { font: inherit; font-weight: 700; padding: .4rem .9rem; border-radius: 999px; border: 2px solid var(--line); background: var(--surface); color: var(--ink); }
+.org button { cursor: pointer; }
+.org button:focus-visible, .org input:focus-visible { outline: 3px solid var(--hero); outline-offset: 2px; }
 .foot { text-align: center; color: var(--muted); font-weight: 700; }
 @media (prefers-reduced-motion: reduce) {
   .lights::before, .lights::after, .gift.pop .box { animation: none; }
@@ -200,7 +207,7 @@ body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--f
 <header class="hero">
   <div class="lights" aria-hidden="true"></div>
   <h1>🎄 Girls' Christmas Lists 🎄</h1>
-  <p>Tap a gift once you've bought it so nobody doubles up. Tap again to undo.</p>
+  <p>Type your name, then tap a gift to claim it. Each gift can be claimed by one person, and only they can undo it.</p>
   <p class="countdown" id="countdown"></p>
   <div class="tally">
     <strong id="tally">Loading the lists…</strong>
@@ -210,7 +217,7 @@ body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--f
 <div class="page">
   <div class="notice" id="notice" hidden></div>
   <section class="tools" aria-label="Tools">
-    <label class="field" for="buyer"><span>🎅 Your name</span><input id="buyer" type="text" maxlength="30" autocomplete="given-name" placeholder="Shows who bought each gift"></label>
+    <label class="field" for="buyer"><span>🎅 Your name</span><input id="buyer" type="text" maxlength="30" autocomplete="given-name" placeholder="Needed to claim a gift"></label>
     <label class="field" for="search"><span>🔎 Find a gift</span><input id="search" type="search" placeholder="Search all the lists"></label>
     <div class="tool-btns">
       <button type="button" id="pick">🎲 Pick one for me</button>
@@ -218,6 +225,14 @@ body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--f
     </div>
   </section>
   <main class="lists" id="lists"></main>
+  <div class="org">
+    <button type="button" id="org-toggle">Organizer</button>
+    <form id="org-form" class="org" hidden>
+      <input id="org-code" type="password" autocomplete="off" placeholder="Organizer code" aria-label="Organizer code">
+      <button type="submit">Unlock</button>
+    </form>
+    <span id="org-on" hidden>Organizer mode is on. You can undo any claim and remove added gifts. <button type="button" id="org-off">Turn off</button></span>
+  </div>
   <p class="foot">Made with love for Aria, Ella &amp; Eyesie ❄️</p>
 </div>
 <script>
@@ -244,7 +259,7 @@ body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--f
   });
   document.getElementById("pick").addEventListener("click", function () {
     var open = gifts.filter(function (g) { return !g.purchased; });
-    if (!open.length) { notice(loaded ? "Everything is already purchased!" : "The lists are still loading."); return; }
+    if (!open.length) { notice(loaded ? "Everything is already claimed!" : "The lists are still loading."); return; }
     picked = open[Math.floor(Math.random() * open.length)].id;
     query = ""; document.getElementById("search").value = "";
     render();
@@ -305,22 +320,62 @@ body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--f
   }
   function notice(msg) { $notice.textContent = msg || ""; $notice.hidden = !msg; }
 
+  // A random key kept on this device proves which claims are yours.
+  var device = "", orgCode = "", organizer = false;
+  try { device = localStorage.getItem("device") || ""; orgCode = localStorage.getItem("orgCode") || ""; } catch (e) {}
+  if (!/^[a-f0-9]{32}$/.test(device)) {
+    var bytes = new Uint8Array(16); crypto.getRandomValues(bytes);
+    device = Array.prototype.map.call(bytes, function (b) { return ("0" + b.toString(16)).slice(-2); }).join("");
+    try { localStorage.setItem("device", device); } catch (e) {}
+  }
+
   function api(body) {
-    return fetch("/api/gifts", body ? {
-      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body)
-    } : { cache: "no-store" }).then(function (r) {
-      if (!r.ok) throw new Error("HTTP " + r.status);
-      return r.json();
+    var headers = { "X-Device": device };
+    if (orgCode) headers["X-Organizer"] = orgCode;
+    if (body) headers["Content-Type"] = "application/json";
+    return fetch("/api/gifts", body ? { method: "POST", headers: headers, body: JSON.stringify(body) }
+                                    : { cache: "no-store", headers: headers }).then(function (r) {
+      return r.json().then(function (d) {
+        if (!r.ok) { var err = new Error(d.error || "HTTP " + r.status); err.data = d; throw err; }
+        return d;
+      }, function () { throw new Error("HTTP " + r.status); });
     });
   }
-  function apply(data) { gifts = data.gifts || []; loaded = true; notice(""); render(); }
+  function setState(data) {
+    gifts = data.gifts || []; loaded = true; organizer = !!data.organizer;
+    document.getElementById("org-on").hidden = !organizer;
+    document.getElementById("org-toggle").hidden = organizer;
+    if (organizer) document.getElementById("org-form").hidden = true;
+  }
+  function apply(data) { setState(data); notice(""); render(); }
+
+  document.getElementById("org-toggle").addEventListener("click", function () {
+    var f = document.getElementById("org-form"); f.hidden = !f.hidden;
+    if (!f.hidden) document.getElementById("org-code").focus();
+  });
+  document.getElementById("org-form").addEventListener("submit", function (e) {
+    e.preventDefault();
+    orgCode = document.getElementById("org-code").value.trim();
+    api().then(function (d) {
+      apply(d);
+      if (d.organizer) { try { localStorage.setItem("orgCode", orgCode); } catch (e2) {} document.getElementById("org-code").value = ""; }
+      else { orgCode = ""; notice("That organizer code isn't right."); }
+    }, function (e2) { notice(e2.message); });
+  });
+  document.getElementById("org-off").addEventListener("click", function () {
+    orgCode = ""; try { localStorage.removeItem("orgCode"); } catch (e) {}
+    refresh();
+  });
   function refresh() {
     if (Object.keys(saving).length) return;
     api().then(apply, function () {
       if (!loaded) $tally.textContent = "Can't reach the lists yet. Still trying…";
     });
   }
-  function failed() { notice("That didn't save. Check your connection and try again."); }
+  function failed(e) {
+    if (e && e.data && e.data.gifts) { setState(e.data); render(); }
+    notice(e && e.data && e.data.error ? e.data.error : "That didn't save. Check your connection and try again.");
+  }
 
   var parts = {};
   KIDS.forEach(function (kid) {
@@ -369,15 +424,21 @@ body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--f
 
   function toggle(g, ev) {
     if (saving[g.id]) return;
+    if (g.purchased && !g.canUndo) { notice((g.buyer || "Someone") + " already claimed that one. Only they can undo it."); return; }
+    if (!g.purchased && !buyer) {
+      notice("Type your name first so everyone knows who is buying it.");
+      $buyer.scrollIntoView({ block: "center" }); $buyer.focus({ preventScroll: true });
+      return;
+    }
     saving[g.id] = true;
     var want = !g.purchased;
-    g.purchased = want; g.buyer = want ? buyer : ""; picked = null;
+    g.purchased = want; g.buyer = want ? buyer : ""; g.mine = want; g.canUndo = want; picked = null;
     popId = want ? g.id : null; render();
     setTimeout(function () { popId = null; }, 350);
     if (want && ev) burst(ev.clientX || innerWidth / 2, ev.clientY || innerHeight / 2);
     api({ action: "set", id: g.id, purchased: want, buyer: buyer })
       .then(function (d) { delete saving[g.id]; apply(d); },
-            function () { delete saving[g.id]; g.purchased = !want; failed(); render(); });
+            function (e) { delete saving[g.id]; g.purchased = !want; failed(e); render(); });
   }
 
   function render() {
@@ -389,7 +450,7 @@ body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--f
         .sort(function (a, b) { return (a.order || 0) - (b.order || 0); });
       var done = mine.filter(function (g) { return g.purchased; }).length;
       total += mine.length; bought += done;
-      p.count.textContent = mine.length ? done + " of " + mine.length + " purchased" : "";
+      p.count.textContent = mine.length ? done + " of " + mine.length + " claimed" : "";
       p.fill.style.width = mine.length ? (100 * done / mine.length) + "%" : "0";
       p.form.hidden = !loaded;
 
@@ -400,19 +461,20 @@ body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--f
       p.ul.hidden = false;
       if (!shown.length) {
         if (p.hasLink && !mine.length) { p.ul.hidden = true; return; }
-        var msg = !loaded ? "Loading…" : !mine.length ? "No gifts listed yet." : query ? "No matches here." : "Everything here is purchased.";
+        var msg = !loaded ? "Loading…" : !mine.length ? "No gifts listed yet." : query ? "No matches here." : "Everything here is claimed.";
         var li0 = el("li"); li0.appendChild(el("div", "empty", msg)); p.ul.appendChild(li0);
         return;
       }
       shown.forEach(function (g) {
         var li = el("li", "row" + (picked === g.id ? " picked" : ""));
-        var b = el("button", "gift" + (saving[g.id] ? " saving" : "") + (popId === g.id ? " pop" : ""));
+        var b = el("button", "gift" + (saving[g.id] ? " saving" : "") + (popId === g.id ? " pop" : "") + (g.purchased && !g.canUndo ? " taken" : ""));
+        if (g.purchased && !g.canUndo) b.setAttribute("aria-disabled", "true");
         b.type = "button";
         b.dataset.gift = g.id;
         b.setAttribute("aria-pressed", g.purchased ? "true" : "false");
         b.appendChild(el("span", "box", g.purchased ? "✓" : ""));
         b.appendChild(el("span", "name", g.name));
-        if (g.purchased) b.appendChild(el("span", "status", g.buyer || "Purchased"));
+        if (g.purchased) b.appendChild(el("span", "status", (g.buyer || "Claimed") + (g.mine ? " (you)" : "")));
         b.addEventListener("click", function (ev) { toggle(g, ev); });
         li.appendChild(b);
         if (!g.purchased) {
@@ -421,7 +483,7 @@ body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--f
           s.setAttribute("aria-label", "Shop for " + g.name);
           li.appendChild(s);
         }
-        if (g.added) {
+        if (g.canRemove) {
           var asking = confirmRm === g.id;
           var r = el("button", "rm", asking ? "Remove?" : "\u2715");
           r.type = "button";
@@ -436,7 +498,7 @@ body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--f
         p.ul.appendChild(li);
       });
     });
-    if (loaded) $tally.textContent = total ? bought + " of " + total + " gifts purchased" : "No gifts listed yet";
+    if (loaded) $tally.textContent = total ? bought + " of " + total + " gifts claimed" : "No gifts listed yet";
     if (focusId) {
       var again = $lists.querySelector('[data-gift="' + focusId + '"]');
       if (again) again.focus();
