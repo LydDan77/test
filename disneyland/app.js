@@ -615,7 +615,9 @@
     Object.keys(d).forEach(function (k) { if (e[k] == null) e[k] = d[k]; });
     return e;
   }
-  function defaultWhen() { var s = refDate(); if (!s) return '1'; return s < new Date(2027, 9, 6) ? '0' : s < new Date(2028, 9, 6) ? '1' : '2'; }
+  // Prices in the guide are for one published year; later years get an allowance for the usual rise.
+  function priceYear() { return (G.costs || {}).priceYear || 2027; }
+  function defaultWhen() { var s = refDate() || pd(((G.windows || [])[0] || {}).start); return String(Math.max(0, Math.min(2, (s ? s.getFullYear() : priceYear()) - priceYear()))); }
   function estimate(over) {
     var e = Object.assign({}, estDefaults(), over || {}), c = G.costs || {}, bumps = num(e.when, 1);
     var tk = Math.pow(1 + (c.bumpTickets || 0.05), bumps), ot = Math.pow(1 + (c.bumpOther || 0.04), bumps);
@@ -637,7 +639,7 @@
   }
   function needBy() {
     var s = tripStart(); if (s) return addDays(s, -45);
-    return [new Date(2027, 6, 1), new Date(2028, 1, 1), new Date(2028, 9, 1)][num(estDefaults().when, 1)] || new Date(2028, 1, 1);
+    return new Date(priceYear() + num(estDefaults().when, 0), 5, 1);
   }
   function estOut() {
     var r = estimate();
@@ -664,7 +666,7 @@
     var h = head('Budget', 'What it costs, and how to save for it', G.moneyLede || '');
     h += sec('Your household\'s estimate', 'Change the numbers to match your household. This is private: it stays on this device and nobody else sees it.',
       '<div class="grid two"><div class="card"><div class="fgrid">' + n('adults', 'Adults and kids 10+') + n('kids', 'Kids 3 to 9') + n('babies', 'Under 3 (free)') + n('nights', 'Hotel nights') + n('days', 'Park days (1 to ' + maxDays() + ')', 'max="' + maxDays() + '"') + n('rooms', 'Rooms') + '</div>' +
-      sel('when', 'When we travel', [['0', 'Before October 2027 (today\'s prices)'], ['1', 'October 2027 to September 2028'], ['2', 'October 2028 or later']]) +
+      sel('when', 'When we travel', [['0', 'In ' + priceYear() + ' (published prices)'], ['1', 'In ' + (priceYear() + 1) + ' (allowing for a rise)'], ['2', 'In ' + (priceYear() + 2) + ' or later']]) +
       sel('lodge', 'Where we stay', (c.lodging || []).map(function (x) { return [x.id, x.label]; })) +
       '<div class="fgrid">' + n('nightly', 'Or your own nightly rate', 'placeholder="auto"') + n('llDays', 'Lightning Lane days') + '</div>' +
       '<label class="rowflex" for="e-hopper"><input type="checkbox" id="e-hopper" data-inp="est" data-k="hopper"' + (e.hopper ? ' checked' : '') + ' style="width:22px;height:22px;accent-color:var(--poppy)"><span>Park Hopper tickets (both parks on the same day)</span></label>' +
