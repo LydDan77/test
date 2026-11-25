@@ -1,6 +1,8 @@
-# Disneyland Family HQ
+# Disney World Family HQ
 
-A family trip planner for a 2027 or 2028 Disneyland trip. Plain HTML, CSS and JavaScript: no build tools, no server, no accounts.
+A family trip planner for a 2027 or 2028 Walt Disney World trip for 15 people. Plain HTML, CSS and JavaScript: no build tools, no server, no accounts.
+
+The folder is still called `disneyland` because the plan started there; the content is all Walt Disney World. The destination lives entirely in `guide.js`, so the app itself does not care which resort it describes.
 
 ## What is in here
 
@@ -42,6 +44,6 @@ The page is readable by anyone who has the link, so keep full confirmation numbe
 
 ## Keeping the research fresh
 
-`guide.js` records when it was last checked (`asOf`). Disneyland usually raises prices in early October, opens the next year's hotel bookings in late August, and announces seasonal dates a few months ahead. Re-check prices and dates before paying for anything.
+`guide.js` records when it was last checked (`asOf`). Disney World puts each new year on sale in spring (and November and December in early October), usually at higher prices, and announces seasonal dates a few months ahead. Re-check prices and dates before paying for anything.
 
 Unofficial planner. Not affiliated with or endorsed by The Walt Disney Company.
