@@ -1,4 +1,4 @@
-/* Disneyland Family HQ: app logic.
+/* Family trip HQ: app logic. The destination (parks, rides, prices, wording) all comes from guide.js.
    Shared plan  = the JSON embedded in the page (#plan-data). Organizers edit it and save a new page version.
    Personal bits = this device only (localStorage): budget numbers, savings log, packing ticks, ride stars. */
 (function () {
@@ -7,6 +7,10 @@
   var SHELL = window.TRIP_SHELL;
   var app = document.getElementById('app');
   var HOSTED = !!(window.claude && typeof window.claude.use === 'function');
+  var PLACE = G.place || 'Disney', TRIP_NAME = G.tripName || 'Our Disney Adventure', PARKS = G.parks || [];
+  function parkName(id) { var p = PARKS.find(function (x) { return x.id === id; }); return p ? p.name : id; }
+  function parkOpts() { return [['all', 'All parks']].concat(PARKS.map(function (p) { return [p.id, p.name]; })); }
+  function maxDays() { return Math.max.apply(null, Object.keys((G.costs || {}).adult || { 5: 0 }).map(Number)); }
   var REDUCED = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
   var SPARK = ['#FFC83D', '#FF8AC2', '#7FE3FF', '#FFFFFF', '#B79CFF', '#8CF5B0'];
 
@@ -36,9 +40,9 @@
   function httpsLink(u) { return /^https:\/\//i.test(u || '') ? u : ''; }
 
   var LS = {
-    get: function (k, d) { try { var v = localStorage.getItem('dlhq.' + k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
-    set: function (k, v) { try { localStorage.setItem('dlhq.' + k, JSON.stringify(v)); } catch (e) { /* storage unavailable: carry on */ } },
-    del: function (k) { try { localStorage.removeItem('dlhq.' + k); } catch (e) { /* ignore */ } }
+    get: function (k, d) { try { var v = localStorage.getItem('wdwhq.' + k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
+    set: function (k, v) { try { localStorage.setItem('wdwhq.' + k, JSON.stringify(v)); } catch (e) { /* storage unavailable: carry on */ } },
+    del: function (k) { try { localStorage.removeItem('wdwhq.' + k); } catch (e) { /* ignore */ } }
   };
 
   /* ---------------- state ---------------- */
@@ -291,13 +295,13 @@
     var bar = '';
     if (S.mode === 'local' && L.localEdit) bar = '<div class="modebar"><div class="wrap"><span><b>Editing a copy on this device.</b> Nobody else sees these changes.</span><span class="rowflex"><button class="btn sm" data-act="copy-plan">Copy plan data</button><button class="btn sm" data-act="local-off">Stop editing</button></span></div></div>';
     if (S.stale) bar = '<div class="modebar"><div class="wrap"><span><b>You have unsaved edits from an earlier visit,</b> and the plan has been saved since then.</span><span class="rowflex"><button class="btn sm" data-act="stale-keep">Keep my edits</button><button class="btn sm" data-act="stale-drop">Discard them</button></span></div></div>';
-    return '<header class="top"><div class="wrap"><div class="top-in"><a class="brand" href="#hq"><span class="brand-mark" aria-hidden="true"></span><span style="min-width:0"><span class="brand-name">' + esc(plan.trip.name || 'Our Disneyland Adventure') + '</span><span class="brand-sub">Family trip headquarters</span></span></a>' + w + '</div><nav class="tabs" aria-label="Sections">' + tabs + '</nav></div></header>' + bar;
+    return '<header class="top"><div class="wrap"><div class="top-in"><a class="brand" href="#hq"><span class="brand-mark" aria-hidden="true"></span><span style="min-width:0"><span class="brand-name">' + esc(plan.trip.name || TRIP_NAME) + '</span><span class="brand-sub">Family trip headquarters</span></span></a>' + w + '</div><nav class="tabs" aria-label="Sections">' + tabs + '</nav></div></header>' + bar;
   }
   function footer() {
     var who = S.mode === 'owner' ? 'You can edit this plan. Changes reach everyone when you press Save for everyone.' :
       S.mode === 'viewer' ? 'The trip organizers keep this plan up to date. Your budget numbers, packing ticks and ride stars are saved on this device only.' :
       S.mode === 'local' ? (L.localEdit ? '' : 'You are viewing the shared plan. <button class="linkbtn" data-act="local-on">Edit a copy on this device</button>') : '';
-    return '<footer class="foot"><div class="stack tight"><p>' + who + '</p><p>Plan last saved ' + esc(fmt(pd(plan.saved)) || 'not yet') + '. Research checked ' + esc(G.asOfLabel || '') + '. Prices and rules change often, so confirm on disneyland.com before paying for anything.</p><p>An unofficial family planner. Not affiliated with or endorsed by The Walt Disney Company.</p></div></footer>';
+    return '<footer class="foot"><div class="stack tight"><p>' + who + '</p><p>Plan last saved ' + esc(fmt(pd(plan.saved)) || 'not yet') + '. Research checked ' + esc(G.asOfLabel || '') + '. Prices and rules change often, so confirm on ' + esc(G.site || 'the official site') + ' before paying for anything.</p><p>An unofficial family planner. Not affiliated with or endorsed by The Walt Disney Company.</p></div></footer>';
   }
   function saveBar() {
     if (S.mode !== 'owner' || !S.dirty) return '';
@@ -463,7 +467,7 @@
   }
   setInterval(tickFlip, 1000);
   function renderHero() {
-    var hd = HERO || { eyebrow: '', title: plan.trip.name || 'Our Disneyland Adventure', lede: '' }, big = S.route === 'hq', extra = big ? heroExtra() : '';
+    var hd = HERO || { eyebrow: '', title: plan.trip.name || TRIP_NAME, lede: '' }, big = S.route === 'hq', extra = big ? heroExtra() : '';
     var sig = S.route + '|' + JSON.stringify(hd) + '|' + extra;
     if (sig === heroSig) return;
     heroSig = sig;
@@ -492,7 +496,7 @@
     var names = ['Dream', 'Decide', 'Book', 'Get ready', 'Go', 'Remember'];
     var lede = s ? fmtRange(s, e) + ' · ' + plural(num(t.nights, dayDiff(s, e)), 'night') + ' · ' + plural(num(t.parkDays, 0), 'park day') :
       'No dates picked yet. Start with the When to go page, then lock a window so every booking date below can be worked out.';
-    var h = head('Family trip headquarters', t.name || 'Our Disneyland Adventure', lede);
+    var h = head('Family trip headquarters', t.name || TRIP_NAME, lede);
 
     if (s && td >= s && td <= e) {
       var day = plan.itinerary.find(function (d) { return d.date === iso(td); });
@@ -607,7 +611,7 @@
   /* ---------------- view: Budget ---------------- */
   function estDefaults() {
     var e = L.est, t = plan.trip, c = G.costs || {};
-    var d = { adults: 2, kids: 2, babies: 0, nights: num(t.nights, 5), days: Math.min(5, num(t.parkDays, 4)), when: defaultWhen(), lodge: (c.lodging || [{}])[0].id, rooms: 1, nightly: '', hopper: false, llDays: 1, travel: 'fly', flightPP: c.flightPP || 390, drive: 300, ground: c.ground || 150, food: 'mix', extras: 75 };
+    var d = { adults: 2, kids: 2, babies: 0, nights: num(t.nights, 5), days: Math.min(maxDays(), num(t.parkDays, 4)), when: defaultWhen(), lodge: (c.lodging || [{}])[0].id, rooms: 1, nightly: '', hopper: false, llDays: 1, travel: 'fly', flightPP: c.flightPP || 390, drive: 300, ground: c.ground || 150, food: 'mix', extras: 75 };
     Object.keys(d).forEach(function (k) { if (e[k] == null) e[k] = d[k]; });
     return e;
   }
@@ -615,7 +619,7 @@
   function estimate(over) {
     var e = Object.assign({}, estDefaults(), over || {}), c = G.costs || {}, bumps = num(e.when, 1);
     var tk = Math.pow(1 + (c.bumpTickets || 0.05), bumps), ot = Math.pow(1 + (c.bumpOther || 0.04), bumps);
-    var days = Math.max(1, Math.min(5, Math.round(num(e.days, 4)))), nights = Math.max(0, num(e.nights, 5));
+    var days = Math.max(1, Math.min(maxDays(), Math.round(num(e.days, 4)))), nights = Math.max(0, num(e.nights, 5));
     var A = Math.max(0, num(e.adults)), K = Math.max(0, num(e.kids)), B = Math.max(0, num(e.babies));
     var ad = (e.hopper ? c.hopAdult : c.adult) || {}, ch = (e.hopper ? c.hopChild : c.child) || {};
     var tickets = (A * (ad[days] || 0) + K * (ch[days] || 0)) * tk;
@@ -659,7 +663,7 @@
     var sel = function (k, label, opts) { return '<label class="field" for="e-' + k + '"><span>' + label + '</span><select id="e-' + k + '" data-inp="est" data-k="' + k + '">' + opts.map(function (o) { return '<option value="' + esc(o[0]) + '"' + (String(e[k]) === String(o[0]) ? ' selected' : '') + '>' + esc(o[1]) + '</option>'; }).join('') + '</select></label>'; };
     var h = head('Budget', 'What it costs, and how to save for it', G.moneyLede || '');
     h += sec('Your household\'s estimate', 'Change the numbers to match your household. This is private: it stays on this device and nobody else sees it.',
-      '<div class="grid two"><div class="card"><div class="fgrid">' + n('adults', 'Adults and kids 10+') + n('kids', 'Kids 3 to 9') + n('babies', 'Under 3 (free)') + n('nights', 'Hotel nights') + n('days', 'Park days (1 to 5)', 'max="5"') + n('rooms', 'Rooms') + '</div>' +
+      '<div class="grid two"><div class="card"><div class="fgrid">' + n('adults', 'Adults and kids 10+') + n('kids', 'Kids 3 to 9') + n('babies', 'Under 3 (free)') + n('nights', 'Hotel nights') + n('days', 'Park days (1 to ' + maxDays() + ')', 'max="' + maxDays() + '"') + n('rooms', 'Rooms') + '</div>' +
       sel('when', 'When we travel', [['0', 'Before October 2027 (today\'s prices)'], ['1', 'October 2027 to September 2028'], ['2', 'October 2028 or later']]) +
       sel('lodge', 'Where we stay', (c.lodging || []).map(function (x) { return [x.id, x.label]; })) +
       '<div class="fgrid">' + n('nightly', 'Or your own nightly rate', 'placeholder="auto"') + n('llDays', 'Lightning Lane days') + '</div>' +
@@ -675,9 +679,9 @@
       h += sec('The whole crew', 'All ' + people + ' of us, worked out from the Crew page with the same choices as the estimate above and ' + rooms + ' rooms. Change a choice up there and this follows.',
         '<div class="card gold" id="crew-out">' + crewOut(g, cc) + '</div>');
     }
-    if (G.prices) h += sec('Real prices right now', 'As of ' + (G.asOfLabel || '') + '. Disneyland has raised prices every October for five years running.', '<div class="card"><div class="scroll"><table class="tbl"><thead><tr><th>What</th><th class="num">Price</th><th>Good to know</th></tr></thead><tbody>' + G.prices.map(function (p) { return '<tr><td><b>' + esc(p.item) + '</b></td><td class="num">' + esc(p.price) + '</td><td class="small">' + esc(p.note || '') + '</td></tr>'; }).join('') + '</tbody></table></div></div>');
+    if (G.prices) h += sec('Real prices right now', (G.pricesIntro || 'As of ' + (G.asOfLabel || '') + '.'), '<div class="card"><div class="scroll"><table class="tbl"><thead><tr><th>What</th><th class="num">Price</th><th>Good to know</th></tr></thead><tbody>' + G.prices.map(function (p) { return '<tr><td><b>' + esc(p.item) + '</b></td><td class="num">' + esc(p.price) + '</td><td class="small">' + esc(p.note || '') + '</td></tr>'; }).join('') + '</tbody></table></div></div>');
     if (G.benchmarks) h += sec('What other families spend', '', tipCards(G.benchmarks, 'sm'));
-    h += sec('Ways to save', 'The tactics the Disneyland money guides agree on.', tipCards(G.saving));
+    h += sec('Ways to save', 'The tactics the expert money guides agree on.', tipCards(G.saving));
     if (G.savingPlan) h += sec('Building the trip fund', '', faq(G.savingPlan));
     if (G.moneyRules) h += sec('Money and a big group', 'Settle these early and nobody has to have an awkward talk in a churro line.', tipCards(G.moneyRules, 'sm'));
     return h + sources('money');
@@ -685,12 +689,12 @@
 
   /* ---------------- view: Stay & travel ---------------- */
   V.stay = function () {
-    var s = tripStart();
+    var s = tripStart(), HC = Object.assign({ walk: 'Getting to the parks', rooms: 'Rooms for a big family', perks: 'Perks', watch: 'Watch for' }, G.hotelCols || {});
     var h = head('Stay and travel', 'Where we sleep and how we get there', G.stayLede || '');
-    h += sec('Four ways to house a big crew', 'Rough totals for our 15 for 5 nights, in 2027 dollars.', '<div class="grid two">' + (G.lodgingPlans || []).map(function (p, i) {
+    h += sec('Four ways to house a big crew', (G.lodgingIntro || ''), '<div class="grid two">' + (G.lodgingPlans || []).map(function (p, i) {
       return '<div class="ticket ' + (i === 0 ? 'pick' : '') + '"><div class="ticket-stub"><span class="ticket-letter">' + (i + 1) + '</span><span class="ticket-cap">' + (i === 0 ? 'Top pick' : 'Option') + '</span></div><div class="ticket-body"><h3>' + esc(p.t) + '</h3><span class="pill sun" style="align-self:flex-start">' + esc(p.cost) + '</span><p>' + esc(p.d) + '</p><details class="more"><summary>For and against</summary><div><b class="small">For it</b>' + bullets(p.pros) + '<b class="small">Against it</b>' + bullets(p.cons) + '</div></details></div></div>';
     }).join('') + '</div>');
-    h += sec('Hotels worth a look', 'Walk times are to the main gate. Rates move a lot by date, so treat them as a starting point.', '<div class="card"><div class="scroll"><table class="tbl"><thead><tr><th>Hotel</th><th>Walk</th><th>Big-family rooms</th><th>Perks</th><th>Watch for</th></tr></thead><tbody>' + (G.hotels || []).map(function (x) {
+    h += sec('Hotels worth a look', (G.hotelsIntro || ''), '<div class="card"><div class="scroll"><table class="tbl"><thead><tr><th>Hotel</th><th>' + esc(HC.walk) + '</th><th>' + esc(HC.rooms) + '</th><th>' + esc(HC.perks) + '</th><th>' + esc(HC.watch) + '</th></tr></thead><tbody>' + (G.hotels || []).map(function (x) {
       return '<tr><td><b>' + esc(x.n) + '</b>' + (x.tag ? '<br><span class="pill teal">' + esc(x.tag) + '</span>' : '') + '</td><td>' + esc(x.walk) + '</td><td>' + esc(x.rooms) + '</td><td>' + esc(x.perks) + '</td><td class="small">' + esc(x.watch) + '</td></tr>';
     }).join('') + '</tbody></table></div></div>');
 
@@ -725,9 +729,9 @@
     var h = head('Parks', 'Rides, food and a game plan', G.parksLede || '');
     h += '<section class="sec">' + seg('parks', sub, [['rides', 'Rides and heights'], ['little', 'Baby and little kids'], ['grand', 'Grandparents'], ['food', 'Food'], ['plan', 'Game plan']]) + '</section>';
     if (sub === 'rides') h += parksRides();
-    if (sub === 'little') h += sec('August and the under-fives', 'Disneyland is the easier of the two Disney resorts with a baby: the parks are compact and far more rides have no height rule.', tipCards(G.little)) + sec('For the elementary crowd', '', tipCards(G.kids));
+    if (sub === 'little') h += sec('August and the under-fives', (G.littleLede || ''), tipCards(G.little)) + sec('For the elementary crowd', '', tipCards(G.kids));
     if (sub === 'grand') h += sec('Making it easy on the grandparents', '', tipCards(G.grand));
-    if (sub === 'food') h += sec('Meals worth booking', 'Dining reservations open 60 days ahead at 6 a.m. Pacific. Character meals go first.', '<div class="card"><div class="scroll"><table class="tbl"><thead><tr><th>Where</th><th>What</th><th>Cost</th><th>Good to know</th></tr></thead><tbody>' + (G.dining || []).map(function (d) { return '<tr><td><b>' + esc(d.n) + '</b><br><span class="small">' + esc(d.where) + '</span></td><td>' + esc(d.kind) + '</td><td>' + esc(d.price) + '</td><td class="small">' + esc(d.note) + '</td></tr>'; }).join('') + '</tbody></table></div></div>') + sec('Feeding a crowd', '', tipCards(G.foodTips));
+    if (sub === 'food') h += sec('Meals worth booking', (G.diningLede || ''), '<div class="card"><div class="scroll"><table class="tbl"><thead><tr><th>Where</th><th>What</th><th>Cost</th><th>Good to know</th></tr></thead><tbody>' + (G.dining || []).map(function (d) { return '<tr><td><b>' + esc(d.n) + '</b><br><span class="small">' + esc(d.where) + '</span></td><td>' + esc(d.kind) + '</td><td>' + esc(d.price) + '</td><td class="small">' + esc(d.note) + '</td></tr>'; }).join('') + '</tbody></table></div></div>') + sec('Feeding a crowd', '', tipCards(G.foodTips));
     if (sub === 'plan') h += sec('How to tour with a big group', '', tipCards(G.strategy)) + sec('Lightning Lane, plainly', '', faq(G.llGuide)) + sec('Sample days', 'Starting points to bend around naps and energy.', '<div class="grid two">' + (G.sampleDays || []).map(function (d) { return '<div class="card"><h3>' + esc(d.t) + '</h3>' + (d.d ? '<p class="small muted">' + esc(d.d) + '</p>' : '') + '<div class="rows">' + d.steps.map(function (s) { return '<div class="row" style="padding:7px 0"><span class="time">' + esc(s[0]) + '</span><div class="row-main"><span>' + esc(s[1]) + '</span></div></div>'; }).join('') + '</div></div>'; }).join('') + '</div>') + sec('Shows and parades', '', tipCards(G.entertainment, 'sm'));
     return h + sources('parks');
   };
@@ -743,7 +747,7 @@
     if (kids.length) {
       var gated = rides.filter(function (r) { return r.h; }).sort(function (a, b) { return a.h - b.h; });
       body += '<div class="scroll"><table class="tbl"><thead><tr><th>Ride</th><th class="num">Rule</th>' + kids.map(function (k) { return '<th>' + esc(k.m.name) + '</th>'; }).join('') + '</tr></thead><tbody>' + gated.map(function (r) {
-        return '<tr><td><b>' + esc(r.n) + '</b> <span class="small muted">' + esc(r.p) + '</span></td><td class="num">' + r.h + '"</td>' + kids.map(function (k) { var d = k.h.h - r.h; return '<td class="' + (d >= 0 ? 'yes' : d >= -1.5 ? 'almost' : 'no') + '">' + (d >= 0 ? 'Yes' : d >= -1.5 ? 'Close' : 'Not yet') + '</td>'; }).join('') + '</tr>';
+        return '<tr><td><b>' + esc(r.n) + '</b> <span class="small muted">' + esc(parkName(r.p)) + '</span></td><td class="num">' + r.h + '"</td>' + kids.map(function (k) { var d = k.h.h - r.h; return '<td class="' + (d >= 0 ? 'yes' : d >= -1.5 ? 'almost' : 'no') + '">' + (d >= 0 ? 'Yes' : d >= -1.5 ? 'Close' : 'Not yet') + '</td>'; }).join('') + '</tr>';
       }).join('') + '</tbody></table></div><p class="small muted">' + (kids.some(function (k) { return k.h.est; }) ? '* Estimated height at trip time, assuming typical growth since the date measured. ' : '') + 'Cast members measure at the ride with shoes on. "Close" means within an inch and a half: measure again nearer the trip, and never promise a ride.</p>';
     } else {
       body += '<p class="muted">Add each child\'s height on the Crew page and this turns into a chart of exactly who can ride what. ' + rides.filter(function (r) { return !r.h; }).length + ' of ' + rides.length + ' attractions listed here have no height rule at all.</p>';
@@ -753,10 +757,10 @@
     var list = rides.filter(function (r) { return (S.ridePark === 'all' || r.p === S.ridePark) && (S.rideFit === 'all' || (S.rideFit === 'any' ? !r.h : S.rideFit === 'tall' ? !!r.h : !!L.stars[rideKey(r)])); });
     var starCount = Object.keys(L.stars).filter(function (k) { return L.stars[k]; }).length;
     h += sec('Every ride', 'Star your must-dos. Stars are saved on this device; copy your list and send it to the organizers.',
-      '<div class="rowflex">' + seg('ridePark', S.ridePark, [['all', 'Both parks'], ['DL', 'Disneyland Park'], ['DCA', 'California Adventure']], 'ride-filter') + seg('rideFit', S.rideFit, [['all', 'All'], ['any', 'No height rule'], ['tall', 'Height rule'], ['star', 'My stars (' + starCount + ')']], 'ride-filter') + (starCount ? '<button class="btn sm" data-act="copy-stars">Copy my list</button>' : '') + '</div>' +
+      '<div class="rowflex">' + seg('ridePark', S.ridePark, parkOpts(), 'ride-filter') + seg('rideFit', S.rideFit, [['all', 'All'], ['any', 'No height rule'], ['tall', 'Height rule'], ['star', 'My stars (' + starCount + ')']], 'ride-filter') + (starCount ? '<button class="btn sm" data-act="copy-stars">Copy my list</button>' : '') + '</div>' +
       '<div class="card"><div class="scroll"><table class="tbl"><thead><tr><th></th><th>Ride</th><th>Land</th><th class="num">Height</th><th>Kind</th><th>Skip the line</th></tr></thead><tbody>' + (list.length ? list.map(function (r) {
         var on = !!L.stars[rideKey(r)];
-        return '<tr><td><button class="btn sm" data-act="star" data-id="' + esc(rideKey(r)) + '" aria-pressed="' + on + '" aria-label="' + (on ? 'Remove star from ' : 'Star ') + esc(r.n) + '"' + (on ? ' style="background:var(--sun);color:#14213D;border-color:var(--sun)"' : '') + '>' + (on ? 'Starred' : 'Star') + '</button></td><td><b>' + esc(r.n) + '</b>' + (r.note ? '<br><span class="small muted">' + esc(r.note) + '</span>' : '') + '</td><td class="small">' + esc(r.land) + '<br><span class="muted">' + (r.p === 'DL' ? 'Disneyland Park' : 'California Adventure') + '</span></td><td class="num">' + (r.h ? r.h + '"' : 'Any') + '</td><td class="small">' + esc(r.type) + '</td><td class="small">' + esc(r.ll || 'Standby only') + '</td></tr>';
+        return '<tr><td><button class="btn sm" data-act="star" data-id="' + esc(rideKey(r)) + '" aria-pressed="' + on + '" aria-label="' + (on ? 'Remove star from ' : 'Star ') + esc(r.n) + '"' + (on ? ' style="background:var(--sun);color:#14213D;border-color:var(--sun)"' : '') + '>' + (on ? 'Starred' : 'Star') + '</button></td><td><b>' + esc(r.n) + '</b>' + (r.note ? '<br><span class="small muted">' + esc(r.note) + '</span>' : '') + '</td><td class="small">' + esc(r.land) + '<br><span class="muted">' + esc(parkName(r.p)) + '</span></td><td class="num">' + (r.h ? r.h + '"' : 'Any') + '</td><td class="small">' + esc(r.type) + '</td><td class="small">' + esc(r.ll || 'Standby only') + '</td></tr>';
       }).join('') : '<tr><td colspan="6" class="muted">No rides match.</td></tr>') + '</tbody></table></div></div>');
     if (G.rideNotes) h += sec('Good to know about rides', '', faq(G.rideNotes));
     return h;
@@ -816,7 +820,7 @@
     if (W.busy) return '<h3>Round and round it goes...</h3>';
     if (!W.result) return '<h3>On this wheel</h3><div class="chips">' + (W.slices || []).map(function (r, i) { return '<span class="chip" style="background:' + WHEEL_COL[i % 10] + ';color:' + WHEEL_INK[i % 10] + '">' + esc(r.n) + '</span>'; }).join('') + '</div><p class="small muted">Ten rides are dealt at random from the ones that match.</p>';
     var r = W.result, on = !!L.stars[rideKey(r)];
-    return '<span class="eyebrow">The wheel says</span><p class="bignum" style="font-size:clamp(1.8rem,1.4rem + 2vw,2.6rem)">' + esc(r.n) + '</p><div class="rowflex"><span class="pill teal">' + esc(r.land) + ', ' + (r.p === 'DL' ? 'Disneyland Park' : 'California Adventure') + '</span><span class="pill">' + (r.h ? r.h + ' in or taller' : 'Any height') + '</span><span class="pill">' + esc(r.type) + '</span></div>' + (r.note ? '<p class="small muted">' + esc(r.note) + '</p>' : '') + '<div class="rowflex"><button class="btn sm" data-act="star" data-id="' + esc(rideKey(r)) + '">' + (on ? 'Starred' : 'Star this ride') + '</button></div>';
+    return '<span class="eyebrow">The wheel says</span><p class="bignum" style="font-size:clamp(1.8rem,1.4rem + 2vw,2.6rem)">' + esc(r.n) + '</p><div class="rowflex"><span class="pill teal">' + esc(r.land) + ', ' + esc(parkName(r.p)) + '</span><span class="pill">' + (r.h ? r.h + ' in or taller' : 'Any height') + '</span><span class="pill">' + esc(r.type) + '</span></div>' + (r.note ? '<p class="small muted">' + esc(r.note) + '</p>' : '') + '<div class="rowflex"><button class="btn sm" data-act="star" data-id="' + esc(rideKey(r)) + '">' + (on ? 'Starred' : 'Star this ride') + '</button></div>';
   }
   function funWheel() {
     var sig = (L.wheelPark || 'all') + '|' + (L.wheelFit || 'all');
@@ -825,7 +829,7 @@
     if (shortest()) fits.push(['crew', 'Our shortest rider can go']);
     fits.push(['star', 'My starred rides']);
     return sec('Ride wheel', 'Cannot agree on what to ride next? Let the wheel decide.',
-      '<div class="rowflex">' + seg('wheelPark', L.wheelPark || 'all', [['all', 'Both parks'], ['DL', 'Disneyland Park'], ['DCA', 'California Adventure']], 'wheel-set') + seg('wheelFit', L.wheelFit || 'all', fits, 'wheel-set') + '</div>' +
+      '<div class="rowflex">' + seg('wheelPark', L.wheelPark || 'all', parkOpts(), 'wheel-set') + seg('wheelFit', L.wheelFit || 'all', fits, 'wheel-set') + '</div>' +
       '<div class="card"><div class="tool half"><div class="stack" style="align-items:center">' + (W.slices.length >= 2 ? '<div class="wheel-wrap"><span class="wheel-pin" aria-hidden="true"></span><canvas id="wheel" width="680" height="680" role="img" aria-label="A wheel of ' + W.slices.length + ' rides"></canvas><span class="wheel-hub" aria-hidden="true"></span></div><div class="rowflex" style="justify-content:center"><button class="btn primary big" data-act="wheel-spin">Spin the wheel</button><button class="btn" data-act="wheel-deal">Deal new rides</button></div>' : '<div class="empty">Not enough rides match. Loosen the filters, or star a few rides on the Parks page.</div>') + '</div>' +
       '<div class="stack" id="wheel-out" aria-live="polite">' + wheelOut() + '</div></div></div>');
   }
@@ -935,9 +939,9 @@
         return '<div class="card"><div class="dayhead"><h3>' + esc(d.title || 'Day') + '</h3>' + (d.date ? '<span class="pill">' + esc(fmt(pd(d.date), true)) + '</span>' : '') + (d.park ? '<span class="pill teal">' + esc(d.park) + '</span>' : '') + '</div>' + dayItems(d) + (canEdit() ? '<button class="btn sm" data-act="edit-day" data-id="' + d.id + '" style="align-self:flex-start">Edit day</button>' : '') + '</div>';
       }).join('') + '</div>' : '<div class="empty">The day-by-day plan appears here once the organizers build it. The Parks page has sample days to start from.</div>', editBtn('add-day', 'Add a day'));
 
-    var rows = [['Where we are staying', info.hotel], ['Meeting spot, Disneyland Park', info.meetDL], ['Meeting spot, California Adventure', info.meetDCA], ['If someone gets separated', info.lost], ['Other notes', info.notes]];
+    var rows = [['Where we are staying', info.hotel]].concat(PARKS.map(function (p) { return ['Meeting spot, ' + p.name, info['meet_' + p.id]]; })).concat([['If someone gets separated', info.lost], ['Other notes', info.notes]]);
     h += sec('Key info', 'The answers everyone asks for at 7 in the morning.',
-      '<div class="card"><dl class="kv">' + rows.map(function (r) { return '<dt>' + r[0] + '</dt><dd' + (r[1] ? '' : ' class="muted" style="font-weight:400"') + '>' + esc(r[1] || 'Not set yet') + '</dd>'; }).join('') + '</dl></div>', editBtn('edit-info', 'Edit key info'));
+      '<div class="card"><dl class="kv">' + rows.map(function (r) { return '<dt>' + esc(r[0]) + '</dt><dd' + (r[1] ? '' : ' class="muted" style="font-weight:400"') + '>' + esc(r[1] || 'Not set yet') + '</dd>'; }).join('') + '</dl></div>', editBtn('edit-info', 'Edit key info'));
 
     var dayof = G.dayOf || [];
     h += sec('Every park morning', 'Tick these off before leaving the room. Ticks are saved on this device.',
@@ -1034,11 +1038,11 @@
     'add-day': function () { A['edit-day']({ dataset: {} }); },
     'edit-day': function (el) {
       var d = plan.itinerary.find(function (y) { return y.id === el.dataset.id; });
-      openForm({ title: d ? 'Edit day' : 'Add a day', fields: [{ k: 'title', label: 'Name', req: true, ph: 'e.g. Day 2: Fantasyland morning' }, { k: 'date', label: 'Date', type: 'date' }, { k: 'park', label: 'Where', type: 'select', opts: ['', 'Disneyland Park', 'California Adventure', 'Both parks', 'Travel day', 'Rest day'] }, { k: 'items', label: 'The plan, one line each', type: 'textarea', ph: '7:30 Leave hotel\n8:00 Peter Pan, then Dumbo\n12:30 Lunch, then naps', help: 'Start a line with a time and it lines up as a schedule.' }], values: d,
+      openForm({ title: d ? 'Edit day' : 'Add a day', fields: [{ k: 'title', label: 'Name', req: true, ph: 'e.g. Day 2: Fantasyland morning' }, { k: 'date', label: 'Date', type: 'date' }, { k: 'park', label: 'Where', type: 'select', opts: [''].concat(PARKS.map(function (p) { return p.name; })).concat(['Park hopping', 'Travel day', 'Rest or pool day']) }, { k: 'items', label: 'The plan, one line each', type: 'textarea', ph: '7:30 Leave hotel\n8:00 Peter Pan, then Dumbo\n12:30 Lunch, then naps', help: 'Start a line with a time and it lines up as a schedule.' }], values: d,
         onSave: function (v) { upsert(plan.itinerary, d && d.id, v); commit('Day saved'); }, onDelete: d ? function () { removeById(plan.itinerary, d.id); commit('Day removed'); } : null });
     },
     'edit-info': function () {
-      openForm({ title: 'Key info', intro: 'Anyone with the link can read this. Leave out room numbers and phone numbers if the link is shared widely.', fields: [{ k: 'hotel', label: 'Where we are staying' }, { k: 'meetDL', label: 'Meeting spot, Disneyland Park' }, { k: 'meetDCA', label: 'Meeting spot, California Adventure' }, { k: 'lost', label: 'If someone gets separated', type: 'textarea' }, { k: 'notes', label: 'Other notes', type: 'textarea' }], values: plan.info, onSave: function (v) { plan.info = v; commit('Key info saved'); } });
+      openForm({ title: 'Key info', intro: 'Anyone with the link can read this. Leave out room numbers and phone numbers if the link is shared widely.', fields: [{ k: 'hotel', label: 'Where we are staying' }].concat(PARKS.map(function (p) { return { k: 'meet_' + p.id, label: 'Meeting spot, ' + p.name }; })).concat([{ k: 'lost', label: 'If someone gets separated', type: 'textarea' }, { k: 'notes', label: 'Other notes', type: 'textarea' }]), values: plan.info, onSave: function (v) { plan.info = v; commit('Key info saved'); } });
     },
     'sub': function (el) { L.sub[el.dataset.k] = el.dataset.v; saveL(); render(); },
     'ride-filter': function (el) { S[el.dataset.k] = el.dataset.v; render(); },
@@ -1068,7 +1072,7 @@
       if (d.n === DUEL_ROUNDS) { FX.show(); toast('Your top rides are in'); } else FX.burst(r.left + r.width / 2, r.top + r.height / 2, 14);
     },
     'duel-skip': function () { duelNext(); render(); },
-    'duel-copy': function () { copyText('My top Disneyland rides:\n' + duelTop(8).map(function (r, i) { return (i + 1) + '. ' + r.n; }).join('\n'), 'List copied. Paste it into a text to the organizers.'); },
+    'duel-copy': function () { copyText('My top ' + PLACE + ' rides:\n' + duelTop(8).map(function (r, i) { return (i + 1) + '. ' + r.n; }).join('\n'), 'List copied. Paste it into a text to the organizers.'); },
     'duel-star': function () { duelTop(5).forEach(function (r) { L.stars[rideKey(r)] = true; }); saveL(); render(); toast('Top five starred on the Parks page'); },
     'duel-reset': function () { L.duel = null; duelPair = null; saveL(); render(); },
     'quiz-start': function () { Q = { order: shuffle((G.trivia || []).map(function (x, i) { return i; })).slice(0, 10), i: 0, score: 0, pick: null }; render(); },
@@ -1085,10 +1089,10 @@
       render();
     },
     'copy-stars': function () {
-      var names = (G.rides || []).filter(function (r) { return L.stars[rideKey(r)]; }).map(function (r) { return '- ' + r.n + ' (' + (r.p === 'DL' ? 'Disneyland Park' : 'California Adventure') + ')'; });
-      copyText('My Disneyland must-dos:\n' + names.join('\n'), 'List copied. Paste it into a text to the organizers.');
+      var names = (G.rides || []).filter(function (r) { return L.stars[rideKey(r)]; }).map(function (r) { return '- ' + r.n + ' (' + parkName(r.p) + ')'; });
+      copyText('My ' + PLACE + ' must-dos:\n' + names.join('\n'), 'List copied. Paste it into a text to the organizers.');
     },
-    'copy-plan': function () { copyText('Disneyland Family HQ plan data:\n' + JSON.stringify(plan), 'Plan data copied. Paste it to Claude.'); },
+    'copy-plan': function () { copyText('Family HQ plan data:\n' + JSON.stringify(plan), 'Plan data copied. Paste it to Claude.'); },
     'add-saved': function () {
       openForm({ title: 'Add money saved', fields: [{ k: 'amt', label: 'Amount in dollars', type: 'number', req: true }, { k: 'note', label: 'Note', ph: 'e.g. December transfer, gift card from Grandma' }], onSave: function (v) {
         var total = Math.max(1, estimate().total), sum = function () { return L.saved.reduce(function (a, x) { return a + num(x.amt); }, 0); }, before = sum() / total * 100;
