@@ -5,6 +5,7 @@
 // Pure: plan data and `now` in, suggestions out.
 
 import type { Booking, BookingOf } from "@/db/schema";
+import { clockText } from "@/lib/calendar";
 import { flightDesignator, type BookingKind, type PlaceRef } from "@/lib/domain";
 import type { PlanData } from "@/lib/plan-data";
 import { addDays, compareDates, localDateOf, utcToZoned } from "@/lib/time";
@@ -14,7 +15,6 @@ import { proposalForBooking } from "./links";
 import { proposeSearch } from "./propose";
 import { RIDE_RESERVATION_WINDOW_DAYS } from "./providers";
 import type { BookingContext, Proposal, RideProposal } from "./types";
-import { clockText } from "@/lib/calendar";
 import { dateAtTimeText, dateText, placeLabel, whenAtText } from "./wording";
 
 /** A task to create for a reminder, ready to insert with `source: "rule"` and the step's ruleKey. */
