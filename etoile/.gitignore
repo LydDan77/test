@@ -42,3 +42,6 @@ next-env.d.ts
 .dev.log
 .dev.lock
 .dev.pid
+
+# screenshots (scripts/shot.mjs, when no session folder exists)
+/.shots/

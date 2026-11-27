@@ -1,0 +1,49 @@
+/* Layer order for the whole app, declared before anything else. Third-party stylesheets go
+   in `vendor`, below Tailwind's utilities; un-layered CSS would beat every utility class.
+   Import one like this:  @import "maplibre-gl/dist/maplibre-gl.css" layer(vendor); */
+@layer theme, base, vendor, components, utilities;
+
+/* source(): scan only src/ for class names. The default scans the whole project (tests, docs,
+   scripts), minus .gitignore'd paths. */
+@import "tailwindcss" source("..");
+
+/* `dark:` follows one rule everywhere: an explicit data-theme on <html> wins, otherwise the
+   operating system preference applies. The inline script in layout.tsx sets data-theme from
+   localStorage before first paint. */
+@custom-variant dark {
+  &:where([data-theme="dark"], [data-theme="dark"] *) {
+    @slot;
+  }
+  @media (prefers-color-scheme: dark) {
+    &:where(:root:not([data-theme="light"]), :root:not([data-theme="light"]) *) {
+      @slot;
+    }
+  }
+}
+
+/* NO VISUAL IDENTITY YET. There are no design tokens here on purpose: the pages use the
+   browser's own colours and a system font, in light and dark. The design-system task replaces
+   everything below this line with the real tokens (see research/stack.md section 4.1 for the
+   proven token pattern). */
+:root {
+  color-scheme: light dark;
+}
+:root[data-theme="light"] {
+  color-scheme: light;
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+}
+
+@layer base {
+  body {
+    font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    line-height: 1.5;
+    /* System colours follow color-scheme, so the bare pages are readable in both themes. */
+    background-color: Canvas;
+    color: CanvasText;
+  }
+  a {
+    text-underline-offset: 0.15em;
+  }
+}
