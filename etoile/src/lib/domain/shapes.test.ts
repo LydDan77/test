@@ -10,6 +10,7 @@ import {
   localDateSchema,
   localTimeSchema,
   localeDefaults,
+  MAX_MONEY_MINOR_UNITS,
   minorUnitDigits,
   moneySchema,
   parseMoneyInput,
@@ -89,7 +90,11 @@ describe("Money", () => {
     expect(moneySchema.safeParse({ amount: 100, currency: "usd" }).success).toBe(false);
     expect(moneySchema.safeParse({ amount: 100, currency: "DOLLARS" }).success).toBe(false);
     expect(moneySchema.safeParse({ amount: 100 }).success).toBe(false);
-    expect(moneySchema.safeParse({ amount: 3_000_000_000, currency: "USD" }).success).toBe(false); // would not fit the column
+    // The columns are 64-bit: a budget of three billion dong is an ordinary amount.
+    expect(moneySchema.safeParse({ amount: 3_000_000_000, currency: "VND" }).success).toBe(true);
+    expect(moneySchema.safeParse({ amount: MAX_MONEY_MINOR_UNITS, currency: "USD" }).success).toBe(true);
+    expect(moneySchema.safeParse({ amount: MAX_MONEY_MINOR_UNITS + 1, currency: "USD" }).success).toBe(false);
+    expect(moneySchema.safeParse({ amount: -MAX_MONEY_MINOR_UNITS - 1, currency: "USD" }).success).toBe(false);
   });
 
   it("formats and parses with the currency's own decimals", () => {
@@ -106,6 +111,88 @@ describe("Money", () => {
     expect(parseMoneyInput("", "USD")).toBeNull();
     expect(parseMoneyInput("twelve", "USD")).toBeNull();
     expect(parseMoneyInput("1.2.3", "USD")).toBeNull();
+  });
+
+  it("formats a stored currency that is not a currency code instead of throwing", () => {
+    expect(formatMoney({ amount: 100, currency: "US" })).toBe("1.00 US");
+    expect(formatMoney({ amount: 123450, currency: "dollars" })).toBe("1,234.50 dollars");
+    expect(formatMoney({ amount: 100, currency: "" })).toBe("1.00");
+    // An unknown locale falls back to en-US.
+    expect(formatMoney({ amount: 123450, currency: "USD" }, "not a locale")).toBe("$1,234.50");
+    expect(formatMoney({ amount: 123450, currency: "EUR" }, "de-DE")).toMatch(/^1\.234,50\s€$/);
+  });
+
+  it("reads a decimal comma as a decimal comma", () => {
+    const eur = (amount: number) => ({ amount, currency: "EUR" });
+    expect(parseMoneyInput("1,5", "EUR")).toEqual(eur(150));
+    expect(parseMoneyInput("12,50", "EUR")).toEqual(eur(1250));
+    expect(parseMoneyInput("1.234,50", "EUR")).toEqual(eur(123450));
+    expect(parseMoneyInput("1.234.567,89", "EUR")).toEqual(eur(123456789));
+    expect(parseMoneyInput("1 234,50", "EUR")).toEqual(eur(123450));
+    expect(parseMoneyInput("1\u00a0234,50 €", "EUR")).toEqual(eur(123450)); // as fr-FR prints it
+    expect(parseMoneyInput("1\u202f234,50", "EUR")).toEqual(eur(123450));
+    expect(parseMoneyInput("1'234.50", "CHF")).toEqual({ amount: 123450, currency: "CHF" });
+    expect(parseMoneyInput("€ 12,50", "EUR")).toEqual(eur(1250));
+    expect(parseMoneyInput("12,50 EUR", "EUR")).toEqual(eur(1250));
+    expect(parseMoneyInput("0,5", "EUR")).toEqual(eur(50));
+    expect(parseMoneyInput(",5", "EUR")).toEqual(eur(50));
+  });
+
+  it("reads one separator followed by three digits as thousands", () => {
+    expect(parseMoneyInput("1,234", "USD")).toEqual({ amount: 123400, currency: "USD" });
+    expect(parseMoneyInput("1.234", "EUR")).toEqual({ amount: 123400, currency: "EUR" });
+    expect(parseMoneyInput("2,500", "USD")).toEqual({ amount: 250000, currency: "USD" });
+    expect(parseMoneyInput("1,234,567", "USD")).toEqual({ amount: 123456700, currency: "USD" });
+    expect(parseMoneyInput("12,34,567.50", "INR")).toEqual({ amount: 123456750, currency: "INR" }); // lakh grouping
+    expect(parseMoneyInput("3,000,000,000", "VND")).toEqual({ amount: 3_000_000_000, currency: "VND" });
+    expect(parseMoneyInput("3.000.000.000", "VND")).toEqual({ amount: 3_000_000_000, currency: "VND" });
+    expect(parseMoneyInput("1,234", "JPY")).toEqual({ amount: 1234, currency: "JPY" });
+    // A currency with three decimals: a dot is its decimal point, a comma could be either.
+    expect(parseMoneyInput("1.234", "KWD")).toEqual({ amount: 1234, currency: "KWD" });
+    expect(parseMoneyInput("1,234.500", "KWD")).toEqual({ amount: 1234500, currency: "KWD" });
+    expect(parseMoneyInput("1,234", "KWD")).toBeNull();
+  });
+
+  it("accepts a sign and the currency's own sign, code or symbol around the number", () => {
+    expect(parseMoneyInput("-5", "USD")).toEqual({ amount: -500, currency: "USD" });
+    expect(parseMoneyInput("\u22125.25", "USD")).toEqual({ amount: -525, currency: "USD" });
+    expect(parseMoneyInput("-$5", "USD")).toEqual({ amount: -500, currency: "USD" });
+    expect(parseMoneyInput("$-5", "USD")).toEqual({ amount: -500, currency: "USD" });
+    expect(parseMoneyInput("-0", "USD")).toEqual({ amount: 0, currency: "USD" });
+    expect(parseMoneyInput("US$ 12", "USD")).toEqual({ amount: 1200, currency: "USD" });
+    expect(parseMoneyInput("usd 12", "USD")).toEqual({ amount: 1200, currency: "USD" });
+    expect(parseMoneyInput("$12.00 USD", "USD")).toEqual({ amount: 1200, currency: "USD" });
+    expect(parseMoneyInput("120 kr", "SEK")).toEqual({ amount: 12000, currency: "SEK" });
+    expect(parseMoneyInput("  .99 ", "USD")).toEqual({ amount: 99, currency: "USD" });
+    expect(parseMoneyInput("１２", "USD")).toEqual({ amount: 1200, currency: "USD" }); // full-width digits
+  });
+
+  it("returns null, never a different amount, for anything that is not one clear number", () => {
+    const notAmounts: [string, string][] = [
+      ["12 for 2 items", "USD"], // two numbers
+      ["12 for 2", "USD"],
+      ["1e3", "USD"], // not how people write money
+      ["(5.00)", "USD"], // accounting brackets
+      ["12.", "USD"], ["12,", "EUR"], // half-typed
+      ["1.2.3", "USD"], ["1,2,3", "USD"],
+      ["1,2345", "USD"], // neither thousands nor cents
+      ["0.125", "USD"], // more decimals than the currency has
+      ["1,234.567", "USD"],
+      ["12.5", "JPY"],
+      ["1,234,56", "USD"], ["12,34.50", "USD"], ["1.234.56", "EUR"], // broken grouping
+      ["1,234.5,6", "USD"], ["1.234,5.6", "EUR"],
+      ["12 EUR", "USD"], // another currency
+      ["--5", "USD"], ["5-", "USD"], ["-$-5", "USD"],
+      ["$", "USD"], [".", "USD"], [",", "EUR"], ["-", "USD"], ["   ", "USD"],
+      ["12 2", "USD"], ["1 23 456", "USD"],
+      ["0x10", "USD"], ["Infinity", "USD"], ["NaN", "USD"], ["twelve", "USD"],
+      ["9".repeat(40), "USD"], // far too large
+      ["99999999999999999", "USD"],
+    ];
+    for (const [text, currency] of notAmounts) expect(parseMoneyInput(text, currency), `${JSON.stringify(text)} ${currency}`).toBeNull();
+    // Excess decimals that are only zeros lose nothing.
+    expect(parseMoneyInput("1234.00", "JPY")).toEqual({ amount: 1234, currency: "JPY" });
+    expect(parseMoneyInput("12.500", "USD")).toEqual({ amount: 1250000, currency: "USD" }); // thousands, per the rule above
   });
 });
 
