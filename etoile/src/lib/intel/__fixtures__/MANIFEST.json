@@ -1,0 +1,219 @@
+{
+ "about": "Captured responses for the live-data provider tests. 'real' files are exactly what the source sent; 'reconstructed' files have the documented shape with invented values; 'derived' files were computed from a real response.",
+ "files": {
+  "bbc-news.xml": {
+   "kind": "real",
+   "source": "https://feeds.bbci.co.uk/news/rss.xml",
+   "fetched": "2026-11-27T21:08Z",
+   "bytes": 22423
+  },
+  "cdc-notices.xml": {
+   "kind": "real",
+   "source": "https://wwwnc.cdc.gov/travel/rss/notices.xml",
+   "fetched": "2026-11-27T21:08Z",
+   "note": "The CDC serves this with Content-Type text/html.",
+   "bytes": 22203
+  },
+  "faa-airport-events.2026-11-27.json": {
+   "kind": "real",
+   "source": "https://nasstatus.faa.gov/api/airport-events",
+   "fetched": "2026-11-27T22:49Z",
+   "note": "No delays anywhere; HNL 'closed' to one military aircraft type, plus the LAX, LAS, SAN notices.",
+   "bytes": 3607
+  },
+  "faa-airport-events.all-types.reconstructed.json": {
+   "kind": "reconstructed",
+   "source": "Field names from the FAA dashboard's own code and the real capture",
+   "note": "Ground stop, ground delay, arrival delay, deicing and airportClosure values are invented: none was active when the captures were taken.",
+   "bytes": 2999
+  },
+  "faa-airport-events.json": {
+   "kind": "real",
+   "source": "https://nasstatus.faa.gov/api/airport-events",
+   "fetched": "2026-11-26T00:07Z",
+   "note": "FLL and MIA departure delays; LAX, LAS, SAN general-aviation notices.",
+   "bytes": 4228
+  },
+  "faa-airport-status-information.2026-11-27.xml": {
+   "kind": "real",
+   "source": "https://nasstatus.faa.gov/api/airport-status-information",
+   "fetched": "2026-11-27T22:49Z",
+   "note": "Byte-exact. Closures list only; HNL appears twice.",
+   "bytes": 1378
+  },
+  "faa-airport-status-information.all-types.reconstructed.xml": {
+   "kind": "reconstructed",
+   "source": "Real capture plus the FAA DTD as quoted in public code",
+   "note": "Ground delay, ground stop and airspace flow rows are invented.",
+   "bytes": 3138
+  },
+  "faa-airport-status-information.no-delays.reconstructed.xml": {
+   "kind": "reconstructed",
+   "source": "Inferred",
+   "note": "The shape with nothing active was not observed.",
+   "bytes": 424
+  },
+  "faa-airport-status-information.xml": {
+   "kind": "real",
+   "source": "https://nasstatus.faa.gov/api/airport-status-information",
+   "fetched": "2026-11-26T00:07Z",
+   "note": "Byte-exact. Two delay types.",
+   "bytes": 1547
+  },
+  "google-news-blocked-503.html": {
+   "kind": "real",
+   "source": "https://news.google.com/rss/search?q=flight+delays+when:7d",
+   "fetched": "2026-11-26T00:07Z",
+   "note": "HTTP 503 text/html. Google News is not a source; this is only an example of a block page.",
+   "bytes": 1103
+  },
+  "nager-error-unknown-country.json": {
+   "kind": "real",
+   "source": "https://date.nager.at/api/v3/PublicHolidays/2026/XX",
+   "fetched": "2026-11-26T00:07Z",
+   "note": "HTTP 404. A real country with no data (IN) answers 204 with an empty body, in v3 and v4: there is nothing to save for that.",
+   "bytes": 112
+  },
+  "nager-error-unsupported-year.json": {
+   "kind": "real",
+   "source": "https://date.nager.at/api/v3/PublicHolidays/3026/US",
+   "fetched": "2026-11-26T00:07Z",
+   "note": "HTTP 400.",
+   "bytes": 130
+  },
+  "nager-v3-longweekend-us-2026.json": {
+   "kind": "real",
+   "source": "https://date.nager.at/api/v3/LongWeekend/2026/US",
+   "fetched": "2026-11-26T00:07Z",
+   "note": "From the API version that ends 2027-01-31. Used only as the expected answer for the app's own long-weekend arithmetic.",
+   "bytes": 932
+  },
+  "nager-v3-longweekend-us-2027.json": {
+   "kind": "real",
+   "source": "https://date.nager.at/api/v3/LongWeekend/2027/US",
+   "fetched": "2026-11-26T00:07Z",
+   "note": "As above.",
+   "bytes": 1033
+  },
+  "nager-v4-holidays-pt-2027.json": {
+   "kind": "real",
+   "source": "https://date.nager.at/api/v4/Holidays/PT/2027",
+   "fetched": "2026-11-26T00:07Z",
+   "bytes": 2361
+  },
+  "nager-v4-holidays-us-2026.json": {
+   "kind": "real",
+   "source": "https://date.nager.at/api/v4/Holidays/US/2026",
+   "fetched": "2026-11-26T00:07Z",
+   "bytes": 3036
+  },
+  "nager-v4-holidays-us-2027.json": {
+   "kind": "real",
+   "source": "https://date.nager.at/api/v4/Holidays/US/2027",
+   "fetched": "2026-11-27T22:49Z",
+   "bytes": 3036
+  },
+  "npr-error-403.html": {
+   "kind": "real",
+   "source": "https://feeds.npr.org/1001/rss.xml requested with User-Agent 'trip-planner-dev' and no Accept header",
+   "fetched": "2026-11-27T22:49Z",
+   "note": "HTTP 403 text/html from the content network. The same address answered 200 a minute later to 'trip-planner/1.0' with an Accept header.",
+   "bytes": 385
+  },
+  "npr-top.xml": {
+   "kind": "real",
+   "source": "https://feeds.npr.org/1001/rss.xml",
+   "fetched": "2026-11-27T21:08Z",
+   "bytes": 14505
+  },
+  "nws-alerts-point-active.json": {
+   "kind": "real",
+   "source": "https://api.weather.gov/alerts/active?point=36.7682,-76.2875",
+   "fetched": "2026-11-26T00:07Z",
+   "note": "Three alerts; geometry is null on all.",
+   "bytes": 20415
+  },
+  "nws-alerts-point-empty.json": {
+   "kind": "real",
+   "source": "https://api.weather.gov/alerts/active?point=41.8781,-87.6298",
+   "fetched": "2026-11-26T00:07Z",
+   "note": "No alerts.",
+   "bytes": 233
+  },
+  "nws-error-no-user-agent.html": {
+   "kind": "real",
+   "source": "https://api.weather.gov/alerts/active sent with no User-Agent",
+   "fetched": "2026-11-26T00:07Z",
+   "note": "HTTP 403 text/html. Used throughout as a real HTML error page.",
+   "bytes": 391
+  },
+  "nws-error-point-out-of-bounds.json": {
+   "kind": "real",
+   "source": "https://api.weather.gov/alerts/active?point=38.7251,-9.1498",
+   "fetched": "2026-11-26T00:07Z",
+   "note": "HTTP 400 application/problem+json for a point outside the United States.",
+   "bytes": 275
+  },
+  "open-meteo-archive-error-daily-limit.json": {
+   "kind": "real",
+   "source": "https://archive-api.open-meteo.com/v1/archive",
+   "fetched": "2026-11-27T21:08Z",
+   "note": "HTTP 429. The only real answer this host has given this machine.",
+   "bytes": 86
+  },
+  "open-meteo-archive.reconstructed.json": {
+   "kind": "reconstructed",
+   "source": "Shape per Open-Meteo's documentation (the archive answers like the forecast API)",
+   "note": "Invented values, in °F and inches. No real good answer from the archive host has been captured.",
+   "bytes": 766
+  },
+  "open-meteo-error-date-out-of-range.json": {
+   "kind": "real",
+   "source": "https://api.open-meteo.com/v1/forecast?...&start_date=2027-02-01&end_date=2027-02-05",
+   "fetched": "2026-11-26T00:07Z",
+   "note": "HTTP 400.",
+   "bytes": 102
+  },
+  "open-meteo-error-forecast-days.json": {
+   "kind": "real",
+   "source": "https://api.open-meteo.com/v1/forecast?...&forecast_days=17",
+   "fetched": "2026-11-26T00:07Z",
+   "note": "HTTP 400.",
+   "bytes": 84
+  },
+  "open-meteo-forecast-multi-location.json": {
+   "kind": "real",
+   "source": "https://api.open-meteo.com/v1/forecast with two places",
+   "fetched": "2026-11-26T00:07Z",
+   "note": "The body is an array. The app never asks for two places; used to check that an array is refused.",
+   "bytes": 927
+  },
+  "open-meteo-forecast.json": {
+   "kind": "real",
+   "source": "https://api.open-meteo.com/v1/forecast (Chicago, 14 daily + 7 hourly + 8 current variables, imperial units, timezone=auto, 16 days)",
+   "fetched": "2026-11-26T00:07Z",
+   "note": "Untrimmed. The app asks for fewer variables; this capture has every daily one it reads, and every current one except cloud_cover.",
+   "bytes": 21172
+  },
+  "skift.xml": {
+   "kind": "real",
+   "source": "https://skift.com/feed/",
+   "fetched": "2026-11-27T21:08Z",
+   "bytes": 22072
+  },
+  "state-advisories.index.derived.json": {
+   "kind": "derived",
+   "source": "https://travel.state.gov/_res/rss/TAsTWs.xml",
+   "fetched": "2026-11-26T00:07Z",
+   "note": "All 218 items reduced to name, level, the ISO code in the link, and the link. Not a provider response.",
+   "bytes": 37989
+  },
+  "state-advisories.trimmed.xml": {
+   "kind": "real, trimmed",
+   "source": "https://travel.state.gov/_res/rss/TAsTWs.xml",
+   "fetched": "2026-11-26T00:07Z",
+   "note": "20 of the 218 items, each copied whole: two per level plus the awkward cases.",
+   "bytes": 34396
+  }
+ }
+}

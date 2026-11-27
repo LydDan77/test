@@ -1,0 +1,3 @@
+<!-- RECONSTRUCTED FIXTURE, not a captured response: the expected shape when no airport has a reportable event
+     (root with Update_Time and Dtd_File and zero Delay_type children). Inferred from the DTD and the real capture; not observed live. -->
+<AIRPORT_STATUS_INFORMATION><Update_Time>Thu Nov 26 09:12:03 2026 GMT</Update_Time><Dtd_File>http://www.fly.faa.gov/AirportStatus.dtd</Dtd_File></AIRPORT_STATUS_INFORMATION>

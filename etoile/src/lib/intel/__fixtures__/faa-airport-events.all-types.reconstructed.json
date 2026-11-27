@@ -1,0 +1,99 @@
+[
+  {
+    "airportId": "LGA",
+    "groundStop": {
+      "airportId": "LGA",
+      "startTime": "2026-11-16T23:05:00Z",
+      "endTime": "2026-11-17T00:45:00Z",
+      "impactingCondition": "VOLUME",
+      "includedFacilities": ["ZNY", "ZBW", "ZDC", "ZOB"],
+      "probabilityOfExtension": "MEDIUM",
+      "advisoryUrl": "https://www.fly.faa.gov/adv/adv_otherdis.jsp?advn=101&adv_date=11162026&facId=LGA",
+      "updatedAt": "2026-11-16T23:06:10Z"
+    },
+    "groundDelay": null,
+    "airportClosure": null,
+    "freeForm": null,
+    "arrivalDelay": null,
+    "departureDelay": null,
+    "airportConfig": {
+      "id": "00000000-0000-4000-8000-000000000001",
+      "createdAt": "2026-11-16T22:40:11Z",
+      "airportId": "LGA",
+      "arrivalRunwayConfig": "22",
+      "departureRunwayConfig": "13",
+      "arrivalRate": 32,
+      "sourceTimeStamp": "2026-11-16T22:40:10Z"
+    },
+    "deicing": null,
+    "airportLongName": "LaGuardia",
+    "latitude": "40.7769",
+    "longitude": "-73.8740"
+  },
+  {
+    "airportId": "SFO",
+    "groundStop": null,
+    "groundDelay": {
+      "airportId": "SFO",
+      "startTime": "2026-11-16T17:00:00Z",
+      "endTime": "2026-11-17T04:59:00Z",
+      "avgDelay": 98,
+      "impactingCondition": "LOW CEILINGS",
+      "departureScope": null,
+      "includedFacilities": ["ZOA", "ZLA", "ZSE", "ZLC"],
+      "advisoryUrl": "https://www.fly.faa.gov/adv/adv_otherdis.jsp?advn=57&adv_date=11162026&facId=SFO",
+      "fuelFlowAdvisoryDelayTime": null,
+      "updatedAt": "2026-11-16T22:51:44Z"
+    },
+    "airportClosure": null,
+    "freeForm": null,
+    "arrivalDelay": {
+      "airportId": "SFO",
+      "reason": "WX:Low Ceilings",
+      "arrivalDeparture": { "type": "Arrival", "min": "31 minutes", "max": "45 minutes", "trend": "Decreasing" },
+      "updateTime": "2026-11-16T23:10:00Z",
+      "averageDelay": "30",
+      "trend": "decreasing"
+    },
+    "departureDelay": null,
+    "airportConfig": null,
+    "deicing": null,
+    "airportLongName": "San Francisco International",
+    "latitude": "37.6213",
+    "longitude": "-122.3790"
+  },
+  {
+    "airportId": "ORD",
+    "groundStop": null,
+    "groundDelay": null,
+    "airportClosure": null,
+    "freeForm": null,
+    "arrivalDelay": null,
+    "departureDelay": null,
+    "airportConfig": null,
+    "deicing": { "airportId": "ORD", "eventTime": "2026-11-16T21:30:00Z" },
+    "airportLongName": "Chicago O'Hare International",
+    "latitude": "41.9742",
+    "longitude": "-87.9073"
+  },
+  {
+    "airportId": "SNA",
+    "groundStop": null,
+    "groundDelay": null,
+    "airportClosure": {
+      "airportId": "SNA",
+      "startTime": "2026-11-15T07:30:00Z",
+      "endTime": "2026-11-21T14:15:00Z",
+      "text": "DLY 0730-1415",
+      "updatedAt": "2026-11-15T07:31:02Z"
+    },
+    "freeForm": null,
+    "arrivalDelay": null,
+    "departureDelay": null,
+    "airportConfig": null,
+    "deicing": null,
+    "airportLongName": "John Wayne-Orange County",
+    "latitude": "33.6757",
+    "longitude": "-117.8682"
+  }
+]

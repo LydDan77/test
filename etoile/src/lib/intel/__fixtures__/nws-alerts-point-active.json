@@ -1,0 +1,397 @@
+{
+    "@context": [
+        "https://geojson.org/geojson-ld/geojson-context.jsonld",
+        {
+            "@version": "1.1",
+            "wx": "https://api.weather.gov/ontology#",
+            "@vocab": "https://api.weather.gov/ontology#"
+        }
+    ],
+    "type": "FeatureCollection",
+    "features": [
+        {
+            "id": "https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.7435ae28baacd2aab9ee2601d56625b5eac0ed2c.004.2",
+            "type": "Feature",
+            "geometry": null,
+            "properties": {
+                "@id": "https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.7435ae28baacd2aab9ee2601d56625b5eac0ed2c.004.2",
+                "@type": "wx:Alert",
+                "id": "urn:oid:2.49.0.1.840.0.7435ae28baacd2aab9ee2601d56625b5eac0ed2c.004.2",
+                "areaDesc": "Chesapeake; Hampton/Poquoson; Suffolk; Norfolk; Portsmouth",
+                "geocode": {
+                    "SAME": [
+                        "051550",
+                        "051650",
+                        "051800",
+                        "051710",
+                        "051740"
+                    ],
+                    "UGC": [
+                        "VAZ097",
+                        "VAZ525",
+                        "VAZ529",
+                        "VAZ530",
+                        "VAZ531"
+                    ]
+                },
+                "affectedZones": [
+                    "https://api.weather.gov/zones/forecast/VAZ097",
+                    "https://api.weather.gov/zones/forecast/VAZ525",
+                    "https://api.weather.gov/zones/forecast/VAZ529",
+                    "https://api.weather.gov/zones/forecast/VAZ530",
+                    "https://api.weather.gov/zones/forecast/VAZ531"
+                ],
+                "references": [
+                    {
+                        "@id": "https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.9851f63573be3bd64e30050f1ff86fba4a1fd46a.006.1",
+                        "identifier": "urn:oid:2.49.0.1.840.0.9851f63573be3bd64e30050f1ff86fba4a1fd46a.006.1",
+                        "sender": "w-nws.webmaster@noaa.gov",
+                        "sent": "2026-11-25T03:14:00-05:00"
+                    }
+                ],
+                "sent": "2026-11-25T14:18:00-05:00",
+                "effective": "2026-11-25T14:18:00-05:00",
+                "onset": "2026-11-25T14:18:00-05:00",
+                "expires": "2026-11-25T22:30:00-05:00",
+                "ends": "2026-11-26T15:00:00-05:00",
+                "status": "Actual",
+                "messageType": "Update",
+                "category": "Met",
+                "severity": "Severe",
+                "certainty": "Likely",
+                "urgency": "Expected",
+                "event": "Coastal Flood Warning",
+                "sender": "w-nws.webmaster@noaa.gov",
+                "senderName": "NWS Wakefield VA",
+                "headline": "Coastal Flood Warning issued November 25 at 2:18PM EST until November 26 at 3:00PM EST by NWS Wakefield VA",
+                "description": "* WHAT...2 to 3 feet of inundation above ground level expected in low-\nlying areas near shorelines and tidal waterways.\n\n* WHERE...Chesapeake and Suffolk, and Hampton/Poquoson, Norfolk\nand Portsmouth Counties.\n\n* WHEN...Until 3 PM EST Thursday.\n\n* IMPACTS...Major flooding may cause extensive inundation and\nflooding of numerous roads and buildings resulting in a\nsignificant threat to property and life. Water will be 2 to 3\nfeet or more above ground level in some areas. Flooding may\nextend inland from the waterfront and shoreline flooding\nhomes, businesses and isolating some neighborhoods. Numerous\nroads may become impassable under several feet of water and\ncars submerged.",
+                "instruction": "Take the necessary actions to protect flood-prone property. If\ntravel is required, do not drive around barricades or through\nwater of unknown depth.",
+                "response": "Avoid",
+                "note": null,
+                "parameters": {
+                    "AWIPSidentifier": [
+                        "CFWAKQ"
+                    ],
+                    "WMOidentifier": [
+                        "WHUS41 KAKQ 251918"
+                    ],
+                    "NWSheadline": [
+                        "COASTAL FLOOD WARNING NOW IN EFFECT UNTIL 3 PM EST THURSDAY"
+                    ],
+                    "BLOCKCHANNEL": [
+                        "EAS",
+                        "NWEM",
+                        "CMAS"
+                    ],
+                    "EAS-ORG": [
+                        "WXR"
+                    ],
+                    "VTEC": [
+                        "/O.EXT.KAKQ.CF.W.0004.261125T1918Z-261126T2000Z/"
+                    ],
+                    "eventEndingTime": [
+                        "2026-11-26T15:00:00-05:00"
+                    ],
+                    "expiredReferences": [
+                        "w-nws.webmaster@noaa.gov,urn:oid:2.49.0.1.840.0.e9fe63367399b824a86309fcef9d8643cdbd8deb.002.1,2026-11-24T21:11:00-05:00 w-nws.webmaster@noaa.gov,urn:oid:2.49.0.1.840.0.e1ca2c8d623f2ab29e0df8bc60c64b0697a40038.002.2,2026-11-24T15:16:00-05:00"
+                    ]
+                },
+                "scope": "Public",
+                "code": "IPAWSv1.0",
+                "language": "en-US",
+                "web": "http://www.weather.gov",
+                "eventCode": {
+                    "SAME": [
+                        "CFW"
+                    ],
+                    "NationalWeatherService": [
+                        "CFW"
+                    ]
+                }
+            }
+        },
+        {
+            "id": "https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.f25e93e55f16c8e3601c4cda2c8c86fa0b3948d8.001.2",
+            "type": "Feature",
+            "geometry": null,
+            "properties": {
+                "@id": "https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.f25e93e55f16c8e3601c4cda2c8c86fa0b3948d8.001.2",
+                "@type": "wx:Alert",
+                "id": "urn:oid:2.49.0.1.840.0.f25e93e55f16c8e3601c4cda2c8c86fa0b3948d8.001.2",
+                "areaDesc": "Surry; Chesapeake; Isle of Wight; Suffolk",
+                "geocode": {
+                    "SAME": [
+                        "051181",
+                        "051550",
+                        "051093",
+                        "051800"
+                    ],
+                    "UGC": [
+                        "VAZ089",
+                        "VAZ097",
+                        "VAZ528",
+                        "VAZ529"
+                    ]
+                },
+                "affectedZones": [
+                    "https://api.weather.gov/zones/forecast/VAZ089",
+                    "https://api.weather.gov/zones/forecast/VAZ097",
+                    "https://api.weather.gov/zones/forecast/VAZ528",
+                    "https://api.weather.gov/zones/forecast/VAZ529"
+                ],
+                "references": [],
+                "sent": "2026-11-25T12:01:00-05:00",
+                "effective": "2026-11-25T12:01:00-05:00",
+                "onset": "2026-11-25T19:00:00-05:00",
+                "expires": "2026-11-25T20:15:00-05:00",
+                "ends": "2026-11-26T13:00:00-05:00",
+                "status": "Actual",
+                "messageType": "Alert",
+                "category": "Met",
+                "severity": "Severe",
+                "certainty": "Likely",
+                "urgency": "Expected",
+                "event": "High Wind Warning",
+                "sender": "w-nws.webmaster@noaa.gov",
+                "senderName": "NWS Wakefield VA",
+                "headline": "High Wind Warning issued November 25 at 12:01PM EST until November 26 at 1:00PM EST by NWS Wakefield VA",
+                "description": "* WHAT...East winds 30 to 40 mph with gusts up to 60 mph expected.\n\n* WHERE...Chesapeake and Suffolk, and Isle of Wight and Surry\nCounties.\n\n* WHEN...From 7 PM this evening to 1 PM EST Thursday.\n\n* IMPACTS...Damaging winds will blow down trees and power lines.\nWidespread power outages are expected. Travel will be difficult,\nespecially for high profile vehicles.\n\n* ADDITIONAL DETAILS...The strongest winds are expected between 2 AM\nand 9 AM EST Thursday.",
+                "instruction": "People are urged to secure loose objects that could be blown around\nor damaged by the wind.",
+                "response": "Prepare",
+                "note": null,
+                "parameters": {
+                    "AWIPSidentifier": [
+                        "NPWAKQ"
+                    ],
+                    "WMOidentifier": [
+                        "WWUS71 KAKQ 251701"
+                    ],
+                    "NWSheadline": [
+                        "HIGH WIND WARNING IN EFFECT FROM 7 PM THIS EVENING TO 1 PM EST THURSDAY"
+                    ],
+                    "BLOCKCHANNEL": [
+                        "EAS",
+                        "NWEM",
+                        "CMAS"
+                    ],
+                    "EAS-ORG": [
+                        "WXR"
+                    ],
+                    "VTEC": [
+                        "/O.EXA.KAKQ.HW.W.0003.261126T0000Z-261126T1800Z/"
+                    ],
+                    "eventEndingTime": [
+                        "2026-11-26T13:00:00-05:00"
+                    ]
+                },
+                "scope": "Public",
+                "code": "IPAWSv1.0",
+                "language": "en-US",
+                "web": "http://www.weather.gov",
+                "eventCode": {
+                    "SAME": [
+                        "HWW"
+                    ],
+                    "NationalWeatherService": [
+                        "HWW"
+                    ]
+                }
+            }
+        },
+        {
+            "id": "https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.13b5db38e3e057a0549e02d0b8e05fc5699d4245.002.1",
+            "type": "Feature",
+            "geometry": null,
+            "properties": {
+                "@id": "https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.13b5db38e3e057a0549e02d0b8e05fc5699d4245.002.1",
+                "@type": "wx:Alert",
+                "id": "urn:oid:2.49.0.1.840.0.13b5db38e3e057a0549e02d0b8e05fc5699d4245.002.1",
+                "areaDesc": "Northampton; Hertford; Gates; Pasquotank; Camden; Western Currituck; Bertie; Chowan; Perquimans; Eastern Currituck; Brunswick; Dinwiddie; Prince George; Charles City; New Kent; Greensville; Sussex; Surry; James City; Southampton; Chesapeake; Virginia Beach; Eastern Hanover; Western Chesterfield; Eastern Chesterfield (Including Col. Heights); Western Henrico (Including the City of Richmond); Eastern Henrico; York; Newport News; Hampton/Poquoson; Isle of Wight; Suffolk; Norfolk; Portsmouth",
+                "geocode": {
+                    "SAME": [
+                        "037131",
+                        "037091",
+                        "037073",
+                        "037139",
+                        "037029",
+                        "037053",
+                        "037015",
+                        "037041",
+                        "037143",
+                        "051025",
+                        "051053",
+                        "051149",
+                        "051670",
+                        "051730",
+                        "051036",
+                        "051127",
+                        "051081",
+                        "051595",
+                        "051183",
+                        "051181",
+                        "051095",
+                        "051830",
+                        "051175",
+                        "051620",
+                        "051550",
+                        "051810",
+                        "051085",
+                        "051041",
+                        "051570",
+                        "051087",
+                        "051760",
+                        "051199",
+                        "051735",
+                        "051700",
+                        "051650",
+                        "051093",
+                        "051800",
+                        "051710",
+                        "051740"
+                    ],
+                    "UGC": [
+                        "NCZ012",
+                        "NCZ013",
+                        "NCZ014",
+                        "NCZ015",
+                        "NCZ016",
+                        "NCZ017",
+                        "NCZ030",
+                        "NCZ031",
+                        "NCZ032",
+                        "NCZ102",
+                        "VAZ079",
+                        "VAZ080",
+                        "VAZ081",
+                        "VAZ082",
+                        "VAZ083",
+                        "VAZ087",
+                        "VAZ088",
+                        "VAZ089",
+                        "VAZ090",
+                        "VAZ092",
+                        "VAZ097",
+                        "VAZ098",
+                        "VAZ512",
+                        "VAZ513",
+                        "VAZ514",
+                        "VAZ515",
+                        "VAZ516",
+                        "VAZ523",
+                        "VAZ524",
+                        "VAZ525",
+                        "VAZ528",
+                        "VAZ529",
+                        "VAZ530",
+                        "VAZ531"
+                    ]
+                },
+                "affectedZones": [
+                    "https://api.weather.gov/zones/forecast/NCZ012",
+                    "https://api.weather.gov/zones/forecast/NCZ013",
+                    "https://api.weather.gov/zones/forecast/NCZ014",
+                    "https://api.weather.gov/zones/forecast/NCZ015",
+                    "https://api.weather.gov/zones/forecast/NCZ016",
+                    "https://api.weather.gov/zones/forecast/NCZ017",
+                    "https://api.weather.gov/zones/forecast/NCZ030",
+                    "https://api.weather.gov/zones/forecast/NCZ031",
+                    "https://api.weather.gov/zones/forecast/NCZ032",
+                    "https://api.weather.gov/zones/forecast/NCZ102",
+                    "https://api.weather.gov/zones/forecast/VAZ079",
+                    "https://api.weather.gov/zones/forecast/VAZ080",
+                    "https://api.weather.gov/zones/forecast/VAZ081",
+                    "https://api.weather.gov/zones/forecast/VAZ082",
+                    "https://api.weather.gov/zones/forecast/VAZ083",
+                    "https://api.weather.gov/zones/forecast/VAZ087",
+                    "https://api.weather.gov/zones/forecast/VAZ088",
+                    "https://api.weather.gov/zones/forecast/VAZ089",
+                    "https://api.weather.gov/zones/forecast/VAZ090",
+                    "https://api.weather.gov/zones/forecast/VAZ092",
+                    "https://api.weather.gov/zones/forecast/VAZ097",
+                    "https://api.weather.gov/zones/forecast/VAZ098",
+                    "https://api.weather.gov/zones/forecast/VAZ512",
+                    "https://api.weather.gov/zones/forecast/VAZ513",
+                    "https://api.weather.gov/zones/forecast/VAZ514",
+                    "https://api.weather.gov/zones/forecast/VAZ515",
+                    "https://api.weather.gov/zones/forecast/VAZ516",
+                    "https://api.weather.gov/zones/forecast/VAZ523",
+                    "https://api.weather.gov/zones/forecast/VAZ524",
+                    "https://api.weather.gov/zones/forecast/VAZ525",
+                    "https://api.weather.gov/zones/forecast/VAZ528",
+                    "https://api.weather.gov/zones/forecast/VAZ529",
+                    "https://api.weather.gov/zones/forecast/VAZ530",
+                    "https://api.weather.gov/zones/forecast/VAZ531"
+                ],
+                "references": [
+                    {
+                        "@id": "https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.904243850e91c30cc0ee5731cf3f29c8a42c7120.001.1",
+                        "identifier": "urn:oid:2.49.0.1.840.0.904243850e91c30cc0ee5731cf3f29c8a42c7120.001.1",
+                        "sender": "w-nws.webmaster@noaa.gov",
+                        "sent": "2026-11-25T09:48:00-05:00"
+                    }
+                ],
+                "sent": "2026-11-25T11:20:00-05:00",
+                "effective": "2026-11-25T11:20:00-05:00",
+                "onset": "2026-11-25T19:00:00-05:00",
+                "expires": "2026-11-25T22:00:00-05:00",
+                "ends": "2026-11-26T13:00:00-05:00",
+                "status": "Actual",
+                "messageType": "Update",
+                "category": "Met",
+                "severity": "Severe",
+                "certainty": "Possible",
+                "urgency": "Future",
+                "event": "Flood Watch",
+                "sender": "w-nws.webmaster@noaa.gov",
+                "senderName": "NWS Wakefield VA",
+                "headline": "Flood Watch issued November 25 at 11:20AM EST until November 26 at 1:00PM EST by NWS Wakefield VA",
+                "description": "* WHAT...Flooding caused by excessive rainfall continues to be\npossible.\n\n* WHERE...Portions of northeast North Carolina, including the\nfollowing areas, Bertie, Camden, Chowan, Eastern Currituck, Gates,\nHertford, Northampton, Pasquotank, Perquimans and Western Currituck\nand Virginia, including the following areas, Brunswick, Charles\nCity, Chesapeake, Dinwiddie, Eastern Chesterfield (Including Col.\nHeights), Eastern Hanover, Eastern Henrico, Greensville,\nHampton/Poquoson, Isle of Wight, James City, New Kent, Newport\nNews, Norfolk, Portsmouth, Prince George (including Hopewell and\nPetersburg), Southampton, Suffolk, Surry, Sussex, Virginia Beach,\nWestern Chesterfield, Western Henrico (Including the City of\nRichmond) and York.\n\n* WHEN...From 7 PM EST this evening through Thursday afternoon.\n\n* IMPACTS...Excessive runoff may result in flooding of rivers,\ncreeks, streams, and other low-lying and flood-prone locations.\nFlooding may occur in poor drainage and urban areas. Storm drains\nand ditches may become clogged with debris.\n\n* ADDITIONAL DETAILS...\n- Strong low pressure lifts northward late tonight into the\nThanksgiving holiday. Widespread moderate to locally heavy\nrainfall is expected over much of the area. Rainfall amounts of 3\nto 5 inches are forecast, with localized totals up to 6 inches\npossible.\n- http://www.weather.gov/safety/flood",
+                "instruction": "You should monitor later forecasts and be alert for possible Flood\nWarnings. Those living in areas prone to flooding should be prepared\nto take action should flooding develop.",
+                "response": "Prepare",
+                "note": null,
+                "parameters": {
+                    "AWIPSidentifier": [
+                        "FFAAKQ"
+                    ],
+                    "WMOidentifier": [
+                        "WGUS61 KAKQ 251620"
+                    ],
+                    "NWSheadline": [
+                        "FLOOD WATCH REMAINS IN EFFECT FROM 7 PM EST THIS EVENING THROUGH THURSDAY AFTERNOON"
+                    ],
+                    "BLOCKCHANNEL": [
+                        "EAS",
+                        "NWEM",
+                        "CMAS"
+                    ],
+                    "EAS-ORG": [
+                        "WXR"
+                    ],
+                    "VTEC": [
+                        "/O.CON.KAKQ.FA.A.0007.261126T0000Z-261126T1800Z/"
+                    ],
+                    "eventEndingTime": [
+                        "2026-11-26T13:00:00-05:00"
+                    ],
+                    "expiredReferences": [
+                        "w-nws.webmaster@noaa.gov,urn:oid:2.49.0.1.840.0.6aca799ea7c8fa16f10bc3f5578171799d87c7b4.001.1,2026-11-25T01:49:00-05:00"
+                    ]
+                },
+                "scope": "Public",
+                "code": "IPAWSv1.0",
+                "language": "en-US",
+                "web": "http://www.weather.gov",
+                "eventCode": {
+                    "SAME": [
+                        "FFA"
+                    ],
+                    "NationalWeatherService": [
+                        "FAA"
+                    ]
+                }
+            }
+        }
+    ],
+    "title": "Current watches, warnings, and advisories for 36.7682 N, 76.2875 W",
+    "updated": "2026-11-26T00:09:59+00:00"
+}
