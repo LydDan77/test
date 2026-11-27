@@ -51,7 +51,7 @@ export function AuthForm({
   const fieldError = (field: string) => state?.fieldErrors?.[field]?.[0];
 
   return (
-    <form action={formAction} className="flex w-full max-w-sm flex-col gap-4" noValidate={false}>
+    <form action={formAction} className="flex w-full max-w-sm flex-col gap-4">
       {mode === "sign-up" && (
         <>
           <div className="flex flex-col gap-1">

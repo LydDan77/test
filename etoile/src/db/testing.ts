@@ -14,7 +14,7 @@
 // It never touches ./.data, which belongs to the development server.
 
 import path from "node:path";
-import { getDbHandle, replaceDbHandle, schema, type Db, type DbHandle } from "./index";
+import { currentDbHandle, replaceDbHandle, schema, type Db, type DbHandle } from "./index";
 
 export type TestDb = {
   db: Db;
@@ -48,7 +48,7 @@ export async function createTestDb(): Promise<TestDb> {
     db,
     close: async () => {
       // Only clear the process-wide handle if it is still this database.
-      const current = await getDbHandle().catch(() => null);
+      const current = await currentDbHandle()?.catch(() => null);
       if (current === handle) replaceDbHandle(null);
       await handle.close();
     },

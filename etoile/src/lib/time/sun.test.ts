@@ -111,7 +111,6 @@ describe("sunTimes", () => {
       for (const date of ["2026-03-20", "2026-06-21", "2026-09-22", "2026-12-21"]) {
         const sun = sunTimes(place.lat, place.lon, date, place.tz);
         expect(utcToZoned(sun.solarNoon, place.tz).date, `${place.name} ${date} noon`).toBe(date);
-        if (place.name === "Anchorage" && date === "2026-06-21") continue; // sets after midnight, see below
         expect(utcToZoned(sun.sunrise!, place.tz).date, `${place.name} ${date} sunrise`).toBe(date);
         expect(utcToZoned(sun.sunset!, place.tz).date, `${place.name} ${date} sunset`).toBe(date);
         expect(sun.sunrise!.getTime()).toBeLessThan(sun.solarNoon.getTime());

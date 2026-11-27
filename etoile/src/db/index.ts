@@ -182,3 +182,8 @@ export async function getDb(): Promise<Db> {
 export function replaceDbHandle(handle: DbHandle | null): void {
   globalForDb.__etoileDb = handle ? Promise.resolve(handle) : undefined;
 }
+
+/** The handle that is installed right now, without opening one. For src/db/testing.ts only. */
+export function currentDbHandle(): Promise<DbHandle> | undefined {
+  return globalForDb.__etoileDb;
+}

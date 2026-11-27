@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import { Home } from "@/features/home/home";
 import { Landing } from "@/features/marketing/landing";
 import { getUser } from "@/lib/auth";
+import { requestNow } from "@/lib/request";
 
 // "/" is one address with two faces: the landing page for a signed-out visitor, Home for a
 // signed-in one. (Two route groups cannot both own "/", so the choice is made here.)
@@ -20,5 +21,7 @@ export default function RootPage() {
 
 async function HomeOrLanding() {
   const user = await getUser();
-  return user ? <Home user={user} /> : <Landing />;
+  if (!user) return <Landing />;
+  // The current time is request data too: read it here, pass it down.
+  return <Home user={user} now={await requestNow()} />;
 }

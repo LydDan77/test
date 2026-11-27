@@ -21,6 +21,15 @@ test("health check answers", async ({ request }) => {
   expect(await response.json()).toMatchObject({ ok: true, app: "etoile" });
 });
 
+test("every response carries the security headers", async ({ request }) => {
+  for (const path of ["/", "/sign-in", "/api/health"]) {
+    const headers = (await request.get(path)).headers();
+    expect(headers["x-frame-options"], path).toBe("DENY");
+    expect(headers["x-content-type-options"], path).toBe("nosniff");
+    expect(headers["referrer-policy"], path).toBe("strict-origin-when-cross-origin");
+  }
+});
+
 test("sign up, land on Home, sign out, sign in again; a wrong password is refused", async ({ page, context }) => {
   const account = freshAccount("Lydia Hartley");
   const sessionCookie = async () => (await context.cookies()).find((c) => c.name.endsWith("etoile_session"));

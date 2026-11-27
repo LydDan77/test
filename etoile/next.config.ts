@@ -31,6 +31,24 @@ const nextConfig: NextConfig = {
     ? { "/*": ["./node_modules/@electric-sql/pglite/**/*"] }
     : undefined,
 
+  // Headers every response carries. (A Content-Security-Policy is not set yet: the inline
+  // scripts in the root layout would need a nonce, and a nonce makes every page dynamic.)
+  async headers() {
+    return [
+      {
+        source: "/:path*",
+        headers: [
+          // Never let another site put these pages in a frame.
+          { key: "X-Frame-Options", value: "DENY" },
+          { key: "X-Content-Type-Options", value: "nosniff" },
+          // Guest links carry a secret token in the address. Other sites only ever learn the
+          // origin, never the path.
+          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+        ],
+      },
+    ];
+  },
+
   turbopack: {
     rules: {
       // Tailwind CSS 4 runs as a Turbopack loader; there is no postcss.config.

@@ -1,6 +1,23 @@
 import "server-only";
 
+import { io } from "next/cache";
 import { headers } from "next/headers";
+
+/**
+ * The current time, on the server. Use this instead of a bare `new Date()` in a Server
+ * Component: `await io()` tells Next.js that what follows is request-time data, so the value can
+ * never be frozen into a prerendered shell. The caller must be inside <Suspense>.
+ * Pass the result down as `now` to the pure functions in @/lib/time, always with a zone:
+ *
+ *   const now = await requestNow();
+ *   const today = localDateOf(now, plan.tz);
+ *
+ * (In a Server Action or Route Handler a plain `new Date()` is fine.)
+ */
+export async function requestNow(): Promise<Date> {
+  await io();
+  return new Date();
+}
 
 /**
  * The address a request came from, for rate limiting. Reads headers(), so it is request-time

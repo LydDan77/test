@@ -12,11 +12,11 @@ export const metadata: Metadata = { title: "Sign in" };
 // BARE ON PURPOSE: see src/features/auth/auth-form.tsx.
 //
 // The page function is the static shell. The form is rendered at request time, inside
-// <Suspense>, for two reasons:
-//  - it needs request data: the `?next=` target, and whether the visitor is already signed in;
-//  - a form that is rendered at request time shows its error even when it was submitted before
-//    the page's scripts had loaded. A form frozen into the static shell cannot: the shell is
-//    built once, before anyone has typed a wrong password.
+// <Suspense>, because it needs request data: the `?next=` target, and whether the visitor is
+// already signed in. The hidden `next` field is rendered by the form component itself, so it
+// is always part of the form. (Do not stream a single field into a form that is already on the
+// page: until React reveals the streamed part, the field is not in the form, and a quick
+// submit goes without it.)
 export default function SignInPage({ searchParams }: PageProps<"/sign-in">) {
   return (
     <main className="mx-auto flex w-full max-w-xl flex-col gap-6 p-6">

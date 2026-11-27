@@ -6,8 +6,8 @@ import { cookies } from "next/headers";
 import { cache } from "react";
 import { getDb, schema } from "@/db";
 import type { User } from "@/db/schema";
-import { BRAND } from "@/lib/brand";
 import { newId, newToken } from "@/lib/ids";
+import { PLAIN_SESSION_COOKIE, SECURE_SESSION_COOKIE, SESSION_COOKIE_NAMES } from "./cookie-names";
 
 const SESSION_DAYS = 30;
 export const SESSION_MS = SESSION_DAYS * 24 * 60 * 60 * 1000;
@@ -16,14 +16,10 @@ const RENEW_BELOW_MS = SESSION_MS / 2;
 
 const isProduction = process.env.NODE_ENV === "production";
 
-// The __Host- prefix makes the browser refuse the cookie unless it is Secure, has Path=/ and has
-// no Domain attribute, so a sibling subdomain cannot plant or overwrite it.
-// It needs HTTPS, so it is only used when the cookie is Secure.
+// The __Host- name needs HTTPS, so it is only used when the cookie is Secure.
 const SECURE_COOKIE = isProduction && process.env.SESSION_COOKIE_INSECURE !== "1";
-const PLAIN_COOKIE_NAME = `${BRAND.ascii}_session`;
-export const SESSION_COOKIE = SECURE_COOKIE ? `__Host-${PLAIN_COOKIE_NAME}` : PLAIN_COOKIE_NAME;
-/** Both names the cookie can have, for proxy.ts, which only checks that one is present. */
-export const SESSION_COOKIE_NAMES = [`__Host-${PLAIN_COOKIE_NAME}`, PLAIN_COOKIE_NAME] as const;
+export const SESSION_COOKIE = SECURE_COOKIE ? SECURE_SESSION_COOKIE : PLAIN_SESSION_COOKIE;
+export { SESSION_COOKIE_NAMES };
 
 /** The signed-in person: their whole users row except the password hash. */
 export type SessionUser = Omit<User, "passwordHash">;

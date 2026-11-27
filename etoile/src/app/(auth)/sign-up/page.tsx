@@ -9,7 +9,8 @@ import { getUser } from "@/lib/auth";
 export const metadata: Metadata = { title: "Create an account" };
 
 // BARE ON PURPOSE: see src/features/auth/auth-form.tsx.
-// The form is rendered at request time, inside <Suspense>: see the note in ../sign-in/page.tsx.
+// The form is rendered at request time, inside <Suspense>, because whether to show it depends
+// on the session: someone who is already signed in is sent to Home instead.
 export default function SignUpPage() {
   return (
     <main className="mx-auto flex w-full max-w-xl flex-col gap-6 p-6">
