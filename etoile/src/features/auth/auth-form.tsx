@@ -32,20 +32,20 @@ function useBrowserLocale(): string {
     () => "",
   );
 }
-/** The `?next=` target from the address bar, or "" on the server and during hydration. */
-function useNextTarget(): string {
-  return useSyncExternalStore(
-    noSubscription,
-    () => new URLSearchParams(window.location.search).get("next") ?? "",
-    () => "",
-  );
-}
 
-export function AuthForm({ action, mode }: { action: Action; mode: "sign-in" | "sign-up" }) {
+export function AuthForm({
+  action,
+  mode,
+  next,
+}: {
+  action: Action;
+  mode: "sign-in" | "sign-up";
+  /** Sign-in only: the path to go to afterwards, already validated by the page. */
+  next?: string;
+}) {
   const [state, formAction, pending] = useActionState(action, null);
   const timeZone = useBrowserTimeZone();
   const locale = useBrowserLocale();
-  const next = useNextTarget();
   const id = useId();
   const errorId = (field: string) => `${id}-${field}-error`;
   const fieldError = (field: string) => state?.fieldErrors?.[field]?.[0];
@@ -114,13 +114,8 @@ export function AuthForm({ action, mode }: { action: Action; mode: "sign-in" | "
         )}
         {fieldError("password") && <p id={errorId("password")}>{fieldError("password")}</p>}
       </div>
-      {/* Where to go after signing in. The action validates it (safeNextPath) and, when this
-          field is empty because the form was sent before the page was interactive, reads the
-          same value from the request's Referer.
-          Every field of this form is in the static shell on purpose. Never put a form field
-          inside a <Suspense> boundary that streams in: until React reveals the boundary the field
-          is not part of the form, and a quick submit goes without it. */}
-      {mode === "sign-in" && <input type="hidden" name="next" value={next} readOnly />}
+      {/* Where to go after signing in. The action validates it again (safeNextPath). */}
+      {mode === "sign-in" && <input type="hidden" name="next" value={next ?? "/"} readOnly />}
       {/* role="alert" announces the message when it appears. */}
       {state && !state.ok && (
         <p role="alert" className="font-medium">

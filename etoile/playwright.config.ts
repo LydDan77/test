@@ -55,7 +55,10 @@ export default defineConfig({
       : {
           command: `npx next start -p ${port}`,
           url: `${baseURL}/api/health`,
-          reuseExistingServer: !process.env.CI,
+          // Always a fresh server on the fresh build. Reusing one that happens to be on the
+          // port would test whatever build that process loaded, with server-action ids that
+          // no longer match. If the port is taken, Playwright says so and stops.
+          reuseExistingServer: false,
           timeout: 120_000,
           stdout: "pipe",
           stderr: "pipe",

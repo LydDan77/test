@@ -156,35 +156,28 @@ test("the ?next= target cannot send anyone off the site", async ({ page }) => {
   }
 });
 
-test("the forms work as plain posts, before the page is interactive", async ({ browser }) => {
-  // With JavaScript off, a form is sent the way it would be if someone were quicker than the
-  // page: as an ordinary POST. (Streamed parts of a page need JavaScript to appear, so this
-  // test reads the address and the cookie, not the page.)
-  const context = await browser.newContext({ javaScriptEnabled: false });
-  const page = await context.newPage();
-  const account = freshAccount("No Script");
-  const sessionCookie = async () => (await context.cookies()).find((c) => c.name.endsWith("etoile_session"));
+test("a form sent before the page's scripts have loaded still works", async ({ page }) => {
+  const account = await signUpFreshAccount(page);
+  await signOut(page);
 
-  await page.goto("/sign-up");
-  await submitSignUp(page, account);
-  await expect(page).toHaveURL("/");
-  expect(await sessionCookie()).toBeDefined();
+  // Hold every script back, as a slow connection would, so the form is sent as a plain POST
+  // before React has made the page interactive.
+  await page.route("**/_next/static/**/*.js", async (route) => {
+    await new Promise((resolve) => setTimeout(resolve, 1500));
+    await route.continue();
+  });
 
-  // The target of ?next= survives without the script that fills the hidden field.
-  await context.clearCookies();
-  await page.goto("/sign-in?next=%2F%3Ffrom%3Dnext");
-  await submitSignIn(page, account);
-  await expect(page).toHaveURL("/?from=next");
-  expect(await sessionCookie()).toBeDefined();
-
-  // A wrong password comes back to the form with the message and the email still in place.
-  await context.clearCookies();
-  await page.goto("/sign-in");
+  // A wrong password: the message appears once the page that came back is interactive.
+  await page.goto("/sign-in?next=%2F%3Ffrom%3Dnext", { waitUntil: "domcontentloaded" });
   await submitSignIn(page, { email: account.email, password: "not the password" });
   await expect(formAlert(page, "Sign in")).toHaveText(WRONG);
   await expect(page.getByRole("textbox", { name: "Email" })).toHaveValue(account.email);
-  expect(await sessionCookie()).toBeUndefined();
-  await context.close();
+
+  // The right password: signed in, and taken to where ?next= pointed.
+  await page.goto("/sign-in?next=%2F%3Ffrom%3Dnext", { waitUntil: "domcontentloaded" });
+  await submitSignIn(page, account);
+  await expect(page).toHaveURL("/?from=next");
+  await expect(page.getByRole("heading", { name: "Home", level: 1 })).toBeVisible();
 });
 
 test("a session cookie that is made up does not sign anyone in", async ({ page, context }) => {

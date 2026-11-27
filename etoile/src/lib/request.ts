@@ -23,19 +23,3 @@ export async function platformTimeZone(): Promise<string | null> {
   const h = await headers();
   return h.get("x-vercel-ip-timezone")?.trim() || null;
 }
-
-/**
- * A query parameter of the page a form was submitted from, read from the Referer header, and
- * only when that page's path is `pagePath`. Returns null when there is no usable Referer.
- * The value is whatever was in the address bar: treat it as untrusted input.
- */
-export async function refererSearchParam(pagePath: string, name: string): Promise<string | null> {
-  const referer = (await headers()).get("referer");
-  if (!referer) return null;
-  try {
-    const url = new URL(referer);
-    return url.pathname === pagePath ? url.searchParams.get(name) : null;
-  } catch {
-    return null;
-  }
-}

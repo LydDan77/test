@@ -9,26 +9,26 @@ import { getUser } from "@/lib/auth";
 export const metadata: Metadata = { title: "Create an account" };
 
 // BARE ON PURPOSE: see src/features/auth/auth-form.tsx.
+// The form is rendered at request time, inside <Suspense>: see the note in ../sign-in/page.tsx.
 export default function SignUpPage() {
   return (
     <main className="mx-auto flex w-full max-w-xl flex-col gap-6 p-6">
       <h1 className="text-2xl font-semibold">Create an account</h1>
-      <AuthForm action={signUp} mode="sign-up" />
+      <Suspense fallback={<p>Loading…</p>}>
+        <SignUpForm />
+      </Suspense>
       <p>
         Already have an account?{" "}
         <Link href="/sign-in" className="underline">
           Sign in
         </Link>
       </p>
-      <Suspense fallback={null}>
-        <AlreadySignedIn />
-      </Suspense>
     </main>
   );
 }
 
-/** Someone who is already signed in has no use for this page. */
-async function AlreadySignedIn() {
+async function SignUpForm() {
+  // Someone who is already signed in has no use for this page.
   if (await getUser()) redirect("/");
-  return null;
+  return <AuthForm action={signUp} mode="sign-up" />;
 }

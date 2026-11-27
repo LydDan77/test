@@ -14,7 +14,7 @@ import { createSession, deleteExpiredSessions, destroySession, type SessionUser 
 import { homePlaceFromTimeZone, localeDefaults } from "@/lib/domain";
 import { newId } from "@/lib/ids";
 import { describeWait, pruneRateLimits, rateLimit, rateLimitKey, resetRateLimit } from "@/lib/rate-limit";
-import { clientIp, platformTimeZone, refererSearchParam } from "@/lib/request";
+import { clientIp, platformTimeZone } from "@/lib/request";
 import { isIanaTimeZone } from "@/lib/time";
 
 /** Both forms either redirect (success) or return a failure to show. null before the first submit. */
@@ -160,11 +160,8 @@ export async function signIn(_prev: AuthFormState, formData: FormData): Promise<
   });
 
   await createSession(user.id);
-  // Where the person was headed: the form's hidden field, or (when the form was sent before
-  // the page was interactive and the field is empty) the same ?next= on the page's own address.
-  const next = formText(formData, "next") || (await refererSearchParam("/sign-in", "next"));
   // Only ever a path on this site: safeNextPath() turns anything else into "/".
-  redirect(safeNextPath(next) as Route);
+  redirect(safeNextPath(formData.get("next")) as Route);
 }
 
 export async function signOut(): Promise<void> {

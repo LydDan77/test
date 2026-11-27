@@ -222,24 +222,6 @@ describe("signIn", () => {
     expect(await go("/sign-in?next=/plans")).toBe("/");
   });
 
-  it("falls back to the page's own address when the form field is empty", async () => {
-    // A form sent before the page was interactive has no value in its hidden field; the
-    // browser still says which page it came from.
-    const go = (referer: string, next = "") => {
-      requestHeaders.set("referer", referer);
-      return redirectOf(signIn(null, form({ email: "lydia@example.com", password: PASSWORD, next })));
-    };
-    expect(await go("http://localhost:3000/sign-in?next=%2Fplans%2F0123456789ab%3Ftab%3Dpeople")).toBe("/plans/0123456789ab?tab=people");
-    // The same validation applies to it.
-    expect(await go("http://localhost:3000/sign-in?next=https%3A%2F%2Fevil.example")).toBe("/");
-    expect(await go("http://localhost:3000/sign-in?next=%2F%2Fevil.example")).toBe("/");
-    // Only the sign-in page's address counts, and the form field wins when it has a value.
-    expect(await go("http://localhost:3000/somewhere-else?next=%2Fplans")).toBe("/");
-    expect(await go("not a url")).toBe("/");
-    expect(await go("http://localhost:3000/sign-in?next=%2Fplans", "/you")).toBe("/you");
-    expect(await go("http://localhost:3000/sign-in")).toBe("/");
-  });
-
   it("locks out repeated wrong passwords for one account from one address", async () => {
     requestHeaders.set("x-forwarded-for", "198.51.100.30");
     for (let i = 0; i < 8; i++) {
