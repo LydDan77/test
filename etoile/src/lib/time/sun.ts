@@ -1,7 +1,15 @@
 // Sunrise and sunset from latitude and longitude, using the sunrise equation
 // (https://en.wikipedia.org/wiki/Sunrise_equation). Pure arithmetic: no network, no data.
-// Accurate to about two minutes at ordinary latitudes, which is what a day strip needs.
-// sun.test.ts checks it against an independent implementation of NOAA's solar calculator.
+//
+// How accurate (measured in sun.test.ts against a reference that follows the sun's height
+// minute by minute):
+//  - up to 62 degrees of latitude: within about three minutes, all year. That is what a day
+//    strip needs.
+//  - closer to the poles: the same on most days, but in the weeks around the start and end of
+//    the midnight sun and of the polar night, sunrise and sunset can be out by half an hour or
+//    more, and the first or last such day can be a day early or late. The equation takes the
+//    sun's position at noon for the whole day, and up there it changes fast enough to matter.
+//    `approximate` is true for those places: say "about".
 
 import { isLocalDate } from "./dates";
 import { isValidTimeZone, zonedToUtc } from "./zoned";
@@ -20,6 +28,11 @@ export type SunTimes = {
   solarNoon: Date;
   /** Minutes between sunrise and sunset: 1440 on a polar day, 0 on a polar night. */
   daylightMinutes: number;
+  /**
+   * True above 62 degrees of latitude, north or south, where the times can be out by tens of
+   * minutes near the polar seasons (see the top of this file). Write "about 11:40 AM" there.
+   */
+  approximate: boolean;
 };
 
 const RAD = Math.PI / 180;
@@ -28,6 +41,8 @@ const UNIX_EPOCH_JD = 2440587.5;
 const DAY_MS = 86_400_000;
 /** The sun's centre is this far below the horizon at sunrise: refraction plus its radius. */
 const HORIZON_DEGREES = -0.833;
+/** Beyond this latitude the noon shortcut stops being good to a few minutes. */
+export const SUN_TIMES_EXACT_UP_TO_LATITUDE = 62;
 
 const sinDeg = (deg: number) => Math.sin(deg * RAD);
 const cosDeg = (deg: number) => Math.cos(deg * RAD);
@@ -74,11 +89,12 @@ export function sunTimes(lat: number, lon: number, date: string, tz: string): Su
     (sinDeg(HORIZON_DEGREES) - sinDeg(latitude) * sinDeclination) / (cosDeg(latitude) * cosDeclination);
 
   const solarNoon = julianToDate(transit);
+  const approximate = Math.abs(lat) > SUN_TIMES_EXACT_UP_TO_LATITUDE;
   if (cosHourAngle >= 1) {
-    return { kind: "polar_night", sunrise: null, sunset: null, solarNoon, daylightMinutes: 0 };
+    return { kind: "polar_night", sunrise: null, sunset: null, solarNoon, daylightMinutes: 0, approximate };
   }
   if (cosHourAngle <= -1) {
-    return { kind: "polar_day", sunrise: null, sunset: null, solarNoon, daylightMinutes: 1440 };
+    return { kind: "polar_day", sunrise: null, sunset: null, solarNoon, daylightMinutes: 1440, approximate };
   }
 
   const hourAngle = Math.acos(cosHourAngle) / RAD; // degrees
@@ -90,5 +106,6 @@ export function sunTimes(lat: number, lon: number, date: string, tz: string): Su
     sunset,
     solarNoon,
     daylightMinutes: Math.round((sunset.getTime() - sunrise.getTime()) / 60_000),
+    approximate,
   };
 }

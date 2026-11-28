@@ -4,13 +4,14 @@
 import { z } from "zod";
 import { idSchema } from "./common";
 import { SPLIT_METHODS } from "./enums";
+import { MAX_MONEY_MINOR_UNITS } from "./money";
 
 export const splitPartSchema = z.object({
   personId: idSchema,
   /** For method "shares": this person's number of shares (2 means twice a 1). */
   share: z.number().positive().max(1000).optional(),
   /** For method "exact": this person's part in minor units. */
-  amount: z.number().int().min(0).max(2_000_000_000).optional(),
+  amount: z.number().int().min(0).max(MAX_MONEY_MINOR_UNITS).optional(),
 });
 export type SplitPart = z.infer<typeof splitPartSchema>;
 

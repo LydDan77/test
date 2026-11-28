@@ -1,4 +1,5 @@
-import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
+import { eq } from "drizzle-orm";
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { schema } from "@/db";
 import { createTestDb, type TestDb } from "@/db/testing";
 import {
@@ -97,6 +98,87 @@ describe("rateLimit", () => {
   });
 });
 
+describe("whose clock decides", () => {
+  it("is the database's, so an instance with a fast clock cannot reset a count or stretch a wait", async () => {
+    const key = rateLimitKey("test-db-clock", "a");
+    const options = { limit: 2, windowMs: 10 * MINUTE };
+    await rateLimit(key, options);
+    await rateLimit(key, options);
+    expect((await rateLimit(key, options)).ok).toBe(false);
+
+    // This server instance's own clock now runs half an hour ahead of the database's.
+    // The embedded test database reads its time through Date.now(), so only what application
+    // code gets from `new Date()` is moved; the database's clock is checked to have stayed put.
+    const { sql } = await import("drizzle-orm");
+    const databaseNow = async () => {
+      const result = await t.db.execute(sql`select (extract(epoch from now()) * 1000)::double precision as ms`);
+      return Number((result as unknown as { rows: { ms: number }[] }).rows[0].ms);
+    };
+    const RealDate = Date;
+    class FastDate extends RealDate {
+      constructor(...args: unknown[]) {
+        if (args.length === 0) super(RealDate.now() + 30 * MINUTE);
+        else super(...(args as [number]));
+      }
+    }
+    vi.stubGlobal("Date", FastDate);
+    try {
+      expect(new Date().getTime() - RealDate.now()).toBeGreaterThan(29 * MINUTE);
+      expect(Math.abs((await databaseNow()) - RealDate.now())).toBeLessThan(MINUTE);
+      // Still refused: the window is judged by the database's clock.
+      const refused = await rateLimit(key, options);
+      expect(refused.ok).toBe(false);
+      // And the wait is what is left of the window, never more than the window.
+      expect(refused.retryAfterMs).toBeGreaterThan(9 * MINUTE);
+      expect(refused.retryAfterMs).toBeLessThanOrEqual(10 * MINUTE);
+      // A key first counted by the fast instance starts its window at the database's time too.
+      const fresh = await rateLimit(rateLimitKey("test-db-clock", "b"), options);
+      expect(fresh.retryAfterMs).toBeLessThanOrEqual(10 * MINUTE);
+      const [row] = await t.db.select().from(schema.rateLimits).where(eq(schema.rateLimits.key, rateLimitKey("test-db-clock", "b")));
+      expect(Math.abs(row.windowStart.getTime() - RealDate.now())).toBeLessThan(MINUTE);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it("never reports a wait longer than the window, even for a row whose window starts in the future", async () => {
+    const key = rateLimitKey("test-future-window", "a");
+    await t.db.insert(schema.rateLimits).values({ key, count: 5, windowStart: new Date(Date.now() + 30 * MINUTE) });
+    const refused = await rateLimit(key, { limit: 1, windowMs: 10 * MINUTE });
+    expect(refused.ok).toBe(false);
+    expect(refused.retryAfterMs).toBe(10 * MINUTE);
+  });
+
+  it("prunes by the database's clock when no time is given", async () => {
+    await t.db.insert(schema.rateLimits).values([
+      { key: "prune-db:old", count: 1, windowStart: new Date(Date.now() - 25 * 60 * MINUTE) },
+      { key: "prune-db:new", count: 1, windowStart: new Date(Date.now() - 23 * 60 * MINUTE) },
+    ]);
+    await pruneRateLimits();
+    const keys = (await t.db.select({ key: schema.rateLimits.key }).from(schema.rateLimits)).map((r) => r.key);
+    expect(keys).toContain("prune-db:new");
+    expect(keys).not.toContain("prune-db:old");
+  });
+});
+
+describe("options that make no sense", () => {
+  it("are refused with a plain message instead of failing inside the database", async () => {
+    const key = rateLimitKey("test-bad-options", "a");
+    for (const windowMs of [Number.NaN, 0, -1, Number.POSITIVE_INFINITY, 400 * 24 * 60 * MINUTE]) {
+      await expect(rateLimit(key, { limit: 3, windowMs }), String(windowMs)).rejects.toThrow(/windowMs must be a number of milliseconds/);
+    }
+    for (const limit of [Number.NaN, 0, -3, Number.POSITIVE_INFINITY]) {
+      await expect(rateLimit(key, { limit, windowMs: MINUTE }), String(limit)).rejects.toThrow(/limit must be a number of at least 1/);
+    }
+    await expect(rateLimit(key, { limit: 3, windowMs: MINUTE, now: new Date("nope") })).rejects.toThrow(/now is not a valid date/);
+    // Nothing was counted by any of them.
+    expect(await t.db.select().from(schema.rateLimits).where(eq(schema.rateLimits.key, key))).toEqual([]);
+    // They are refused even where limits are switched off, so a mistake shows in development.
+    process.env.RATE_LIMIT_DISABLED = "1";
+    await expect(rateLimit(key, { limit: 3, windowMs: Number.NaN })).rejects.toThrow(RangeError);
+  });
+});
+
 describe("rateLimitKey", () => {
   it("keeps the scope readable and hashes who it is about", () => {
     const key = rateLimitKey("sign-in", "lydia@example.com", "203.0.113.9");
@@ -126,6 +208,25 @@ describe("the off switch", () => {
 
     process.env.VERCEL = "1";
     expect(rateLimitDisabled()).toBe(false);
+  });
+
+  it("says so loudly, once, when it is off in a production build", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    vi.stubEnv("NODE_ENV", "production");
+    delete process.env.VERCEL;
+    try {
+      delete process.env.RATE_LIMIT_DISABLED;
+      expect(rateLimitDisabled()).toBe(false); // on by default in production
+      expect(warn).not.toHaveBeenCalled();
+      process.env.RATE_LIMIT_DISABLED = "1";
+      expect(rateLimitDisabled()).toBe(true);
+      expect(rateLimitDisabled()).toBe(true);
+      expect(warn).toHaveBeenCalledTimes(1);
+      expect(String(warn.mock.calls[0][0])).toContain("RATE_LIMIT_DISABLED=1 in a production build");
+    } finally {
+      vi.unstubAllEnvs();
+      warn.mockRestore();
+    }
   });
 });
 

@@ -1,25 +1,44 @@
 // The whole data model (BUILD-SPEC 5.2). This file and the migrations under drizzle/ are frozen
 // after the foundation: if you need a column, say so in your report instead of editing here.
+// (drizzle/0001 was added by the foundation's own review: see "Integrity" below.)
 //
 // Conventions
 //  - Every table has `id` (short random text from newId()), `createdAt` and `updatedAt`.
 //  - Local calendar dates are text `YYYY-MM-DD`. Instants are timestamptz and always sit next
 //    to a text column holding their IANA zone.
-//  - Money is an integer number of minor units plus an ISO currency.
+//  - Money is a whole number of minor units (a 64-bit column, read as a JavaScript number) plus
+//    an ISO 4217 currency code, which the database checks is three capital letters.
 //  - Fixed lists of values are plain text columns typed from src/lib/domain/enums.ts. The
 //    database does not enforce them (adding a value needs no migration); Zod does, at the edge.
 //  - jsonb columns are typed with the domain types. Validate with the matching Zod schema
 //    before writing: TypeScript only checks the shape you claim, not what a form sent.
 //  - Everything hangs off a user or a plan and is deleted with it (ON DELETE CASCADE).
 //    References between siblings inside a plan are SET NULL, so removing a booking or a person
-//    never silently removes something else.
+//    never silently removes something else. The one thing a person cannot be removed from
+//    under is money: a person with settlements cannot be deleted at all (the database refuses),
+//    and removePerson() (src/db/people.ts) also refuses one who paid for or shares an expense.
+//
+// Integrity
+//  - A child row belongs to the same plan as its parent, and the database enforces it for the
+//    parent/child tree: people and arrivals reference their party by (plan_id, party_id),
+//    hand-offs their booking by (plan_id, booking_id), settlements both people by
+//    (plan_id, person_id). A row can therefore never sit in one plan and hang off another.
+//  - The SET NULL links between siblings (a person's lodging booking, an arrival's driver, a
+//    task's assignee, a payer …) are single columns: Postgres can only clear the whole key of a
+//    composite reference, and plan_id is NOT NULL. For those, and for the ids inside jsonb
+//    (personIds, split parts, seats …), check every id that came from a browser against the
+//    plan with requireParty / requirePerson / requireBooking (src/lib/auth/require.ts).
+//  - Ids inside jsonb are not foreign keys at all, so they can outlive the row they name.
+//    removePerson() cleans them; code that reads them must still tolerate an unknown id.
 //
 // Relative imports only: drizzle-kit loads this file without the "@/…" alias.
 
 import { relations, sql } from "drizzle-orm";
 import {
+  bigint,
   boolean,
   check,
+  foreignKey,
   index,
   integer,
   jsonb,
@@ -87,6 +106,17 @@ const id = () =>
 
 const instant = (name: string) => timestamp(name, { withTimezone: true });
 
+/**
+ * Minor units of a currency. 64-bit in the database, because a 32-bit column ends at about 21
+ * million dollars in cents and at 2.1 billion dong, won or rupiah, which is an ordinary budget
+ * in a currency with no decimals. Read as a JavaScript number: moneySchema keeps amounts well
+ * inside what a number holds exactly.
+ */
+const money = (name: string) => bigint(name, { mode: "number" });
+
+/** ISO 4217: three capital letters. A stored "dollars" would break every screen that formats it. */
+const isCurrencyCode = (column: AnyPgColumn) => sql`${column} ~ '^[A-Z]{3}$'`;
+
 const timestamps = {
   createdAt: instant("created_at").notNull().defaultNow(),
   updatedAt: instant("updated_at")
@@ -118,7 +148,10 @@ export const users = pgTable(
     exampleState: text("example_state", { enum: EXAMPLE_STATES }).notNull().default("seeded"),
     ...timestamps,
   },
-  (t) => [check("users_email_lowercase", sql`${t.email} = lower(${t.email})`)],
+  (t) => [
+    check("users_email_lowercase", sql`${t.email} = lower(${t.email})`),
+    check("users_currency_code", isCurrencyCode(t.currency)),
+  ],
 );
 
 export const sessions = pgTable(
@@ -196,7 +229,7 @@ export const plans = pgTable(
     archivedAt: instant("archived_at"),
     currency: text("currency").notNull().default("USD"),
     /** Minor units of `currency`. */
-    budgetTotal: integer("budget_total"),
+    budgetTotal: money("budget_total"),
     /** Local date. */
     replyDeadline: text("reply_deadline"),
     projectCode: text("project_code"),
@@ -210,7 +243,11 @@ export const plans = pgTable(
     // Readiness is computed on read, not stored.
     ...timestamps,
   },
-  (t) => [index("plans_owner_id_idx").on(t.ownerId), index("plans_owner_start_idx").on(t.ownerId, t.startDate)],
+  (t) => [
+    index("plans_owner_id_idx").on(t.ownerId),
+    index("plans_owner_start_idx").on(t.ownerId, t.startDate),
+    check("plans_currency_code", isCurrencyCode(t.currency)),
+  ],
 );
 
 // --- people ---------------------------------------------------------------------------------------
@@ -234,7 +271,11 @@ export const parties = pgTable(
     sortOrder: integer("sort_order").notNull().default(0),
     ...timestamps,
   },
-  (t) => [index("parties_plan_id_idx").on(t.planId)],
+  (t) => [
+    index("parties_plan_id_idx").on(t.planId),
+    // The target of the (plan_id, party_id) references on people and arrivals.
+    unique("parties_plan_id_id_unique").on(t.planId, t.id),
+  ],
 );
 
 export const people = pgTable(
@@ -244,10 +285,8 @@ export const people = pgTable(
     planId: text("plan_id")
       .notNull()
       .references(() => plans.id, { onDelete: "cascade" }),
-    /** Every person is in exactly one party (a party of one by default). */
-    partyId: text("party_id")
-      .notNull()
-      .references(() => parties.id, { onDelete: "cascade" }),
+    /** Every person is in exactly one party (a party of one by default), in the same plan. */
+    partyId: text("party_id").notNull(),
     name: text("name").notNull(),
     /** Private: never on a share page. */
     email: text("email"),
@@ -281,7 +320,15 @@ export const people = pgTable(
     needsHostConfirmation: boolean("needs_host_confirmation").notNull().default(false),
     ...timestamps,
   },
-  (t) => [index("people_plan_id_idx").on(t.planId), index("people_party_id_idx").on(t.partyId)],
+  (t) => [
+    index("people_plan_id_idx").on(t.planId),
+    index("people_party_id_idx").on(t.partyId),
+    index("people_lodging_booking_id_idx").on(t.lodgingBookingId),
+    // The target of the (plan_id, person_id) references on settlements.
+    unique("people_plan_id_id_unique").on(t.planId, t.id),
+    // The party must be one of this plan's parties. Removing the party removes its people.
+    foreignKey({ name: "people_plan_party_fk", columns: [t.planId, t.partyId], foreignColumns: [parties.planId, parties.id] }).onDelete("cascade"),
+  ],
 );
 
 export const arrivals = pgTable(
@@ -291,9 +338,8 @@ export const arrivals = pgTable(
     planId: text("plan_id")
       .notNull()
       .references(() => plans.id, { onDelete: "cascade" }),
-    partyId: text("party_id")
-      .notNull()
-      .references(() => parties.id, { onDelete: "cascade" }),
+    /** The party arriving or leaving: one of this plan's parties. */
+    partyId: text("party_id").notNull(),
     /** Who is on it (people.id). */
     personIds: jsonb("person_ids").$type<string[]>().notNull().default([]),
     direction: text("direction", { enum: ARRIVAL_DIRECTIONS }).notNull(),
@@ -329,8 +375,13 @@ export const arrivals = pgTable(
   },
   (t) => [
     index("arrivals_plan_id_idx").on(t.planId),
+    index("arrivals_booking_id_idx").on(t.bookingId),
+    index("arrivals_driver_person_id_idx").on(t.driverPersonId),
+    index("arrivals_ride_booking_id_idx").on(t.rideBookingId),
     // One per party per direction.
     unique("arrivals_party_direction_unique").on(t.partyId, t.direction),
+    // The party must be one of this plan's parties. Removing the party removes its arrivals.
+    foreignKey({ name: "arrivals_plan_party_fk", columns: [t.planId, t.partyId], foreignColumns: [parties.planId, parties.id] }).onDelete("cascade"),
     check("arrivals_times_have_zone", sql`(${t.scheduledAt} is null and ${t.expectedAt} is null) or ${t.tz} is not null`),
   ],
 );
@@ -357,7 +408,7 @@ export const bookings = pgTable(
     /** Private: never on a share page. */
     confirmationCode: text("confirmation_code"),
     /** Private: never on a share page. Minor units of `priceCurrency`. */
-    priceAmount: integer("price_amount"),
+    priceAmount: money("price_amount"),
     priceCurrency: text("price_currency"),
     paidByPersonId: text("paid_by_person_id").references((): AnyPgColumn => people.id, { onDelete: "set null" }),
     /** The expense created when a price was recorded. */
@@ -386,6 +437,11 @@ export const bookings = pgTable(
   (t) => [
     index("bookings_plan_id_idx").on(t.planId),
     index("bookings_plan_kind_idx").on(t.planId, t.kind),
+    index("bookings_paid_by_person_id_idx").on(t.paidByPersonId),
+    index("bookings_expense_id_idx").on(t.expenseId),
+    // The target of the (plan_id, booking_id) reference on hand-offs.
+    unique("bookings_plan_id_id_unique").on(t.planId, t.id),
+    check("bookings_price_currency_code", sql`${t.priceCurrency} is null or ${isCurrencyCode(t.priceCurrency)}`),
     // details carries its own kind; it must be the booking's kind.
     check("bookings_details_match_kind", sql`${t.details}->>'kind' = ${t.kind}`),
     check("bookings_price_has_currency", sql`${t.priceAmount} is null or ${t.priceCurrency} is not null`),
@@ -398,9 +454,8 @@ export const handoffs = pgTable(
   "handoffs",
   {
     id: id(),
-    bookingId: text("booking_id")
-      .notNull()
-      .references(() => bookings.id, { onDelete: "cascade" }),
+    /** The booking this link was opened for: one of this plan's bookings. */
+    bookingId: text("booking_id").notNull(),
     planId: text("plan_id")
       .notNull()
       .references(() => plans.id, { onDelete: "cascade" }),
@@ -415,7 +470,12 @@ export const handoffs = pgTable(
     resolvedAt: instant("resolved_at"),
     ...timestamps,
   },
-  (t) => [index("handoffs_booking_id_idx").on(t.bookingId), index("handoffs_plan_id_idx").on(t.planId)],
+  (t) => [
+    index("handoffs_booking_id_idx").on(t.bookingId),
+    index("handoffs_plan_id_idx").on(t.planId),
+    // The booking must be one of this plan's bookings. Removing the booking removes its hand-offs.
+    foreignKey({ name: "handoffs_plan_booking_fk", columns: [t.planId, t.bookingId], foreignColumns: [bookings.planId, bookings.id] }).onDelete("cascade"),
+  ],
 );
 
 // --- schedule and tasks ---------------------------------------------------------------------------
@@ -495,6 +555,9 @@ export const tasks = pgTable(
   },
   (t) => [
     index("tasks_plan_id_idx").on(t.planId),
+    index("tasks_assignee_person_id_idx").on(t.assigneePersonId),
+    index("tasks_claimed_by_person_id_idx").on(t.claimedByPersonId),
+    index("tasks_booking_id_idx").on(t.bookingId),
     // Rows without a ruleKey are unaffected: NULLs never collide in a unique constraint.
     unique("tasks_plan_rule_key_unique").on(t.planId, t.ruleKey),
   ],
@@ -515,7 +578,7 @@ export const expenses = pgTable(
     description: text("description"),
     category: text("category", { enum: EXPENSE_CATEGORIES }).notNull(),
     /** Minor units of `currency`. */
-    amount: integer("amount").notNull(),
+    amount: money("amount").notNull(),
     currency: text("currency").notNull(),
     /** Empty means the company paid, or it was not recorded. */
     paidByPersonId: text("paid_by_person_id").references(() => people.id, { onDelete: "set null" }),
@@ -532,7 +595,12 @@ export const expenses = pgTable(
     status: text("status", { enum: EXPENSE_STATUSES }).notNull().default("paid"),
     ...timestamps,
   },
-  (t) => [index("expenses_plan_date_idx").on(t.planId, t.date)],
+  (t) => [
+    index("expenses_plan_date_idx").on(t.planId, t.date),
+    index("expenses_paid_by_person_id_idx").on(t.paidByPersonId),
+    index("expenses_booking_id_idx").on(t.bookingId),
+    check("expenses_currency_code", isCurrencyCode(t.currency)),
+  ],
 );
 
 export const settlements = pgTable(
@@ -542,22 +610,30 @@ export const settlements = pgTable(
     planId: text("plan_id")
       .notNull()
       .references(() => plans.id, { onDelete: "cascade" }),
-    // Removing a person removes the payments recorded to and from them.
-    fromPersonId: text("from_person_id")
-      .notNull()
-      .references(() => people.id, { onDelete: "cascade" }),
-    toPersonId: text("to_person_id")
-      .notNull()
-      .references(() => people.id, { onDelete: "cascade" }),
+    // A payment between two people of this plan. A person with payments recorded cannot be
+    // deleted: the database refuses (see the references below), so the app has to say "this
+    // person has payments recorded" instead of quietly changing everyone else's balance.
+    fromPersonId: text("from_person_id").notNull(),
+    toPersonId: text("to_person_id").notNull(),
     /** Minor units of `currency`. */
-    amount: integer("amount").notNull(),
+    amount: money("amount").notNull(),
     currency: text("currency").notNull(),
     /** "Venmo", "cash" … free text. */
     method: text("method"),
     settledAt: instant("settled_at").notNull().defaultNow(),
     ...timestamps,
   },
-  (t) => [index("settlements_plan_id_idx").on(t.planId)],
+  (t) => [
+    index("settlements_plan_id_idx").on(t.planId),
+    index("settlements_from_person_id_idx").on(t.fromPersonId),
+    index("settlements_to_person_id_idx").on(t.toPersonId),
+    check("settlements_currency_code", isCurrencyCode(t.currency)),
+    // Both people must be people of this plan. NO ACTION, not CASCADE: deleting a person who
+    // has a settlement fails. (NO ACTION rather than RESTRICT so that deleting the whole plan
+    // still works: it is checked at the end of the statement, when the settlements are gone too.)
+    foreignKey({ name: "settlements_plan_from_person_fk", columns: [t.planId, t.fromPersonId], foreignColumns: [people.planId, people.id] }).onDelete("no action"),
+    foreignKey({ name: "settlements_plan_to_person_fk", columns: [t.planId, t.toPersonId], foreignColumns: [people.planId, people.id] }).onDelete("no action"),
+  ],
 );
 
 // --- share page -----------------------------------------------------------------------------------
@@ -620,22 +696,30 @@ export const briefingStates = pgTable(
     bucket: text("bucket").notNull(),
     ...timestamps,
   },
-  (t) => [unique("briefing_states_user_item_unique").on(t.userId, t.itemKey)],
+  (t) => [
+    unique("briefing_states_user_item_unique").on(t.userId, t.itemKey),
+    index("briefing_states_plan_id_idx").on(t.planId),
+  ],
 );
 
 /** One shared copy of each external feed. Read and write through src/lib/cache.ts. */
-export const signalCache = pgTable("signal_cache", {
-  id: id(),
-  key: text("key").notNull().unique(),
-  /** When `payload` was fetched (or, if nothing has ever been fetched, when it was last tried). */
-  fetchedAt: instant("fetched_at").notNull(),
-  /** When to try the source again. */
-  expiresAt: instant("expires_at").notNull(),
-  /** Whether the most recent attempt succeeded. `payload` keeps the last good value either way. */
-  ok: boolean("ok").notNull(),
-  payload: jsonb("payload").$type<unknown>(),
-  ...timestamps,
-});
+export const signalCache = pgTable(
+  "signal_cache",
+  {
+    id: id(),
+    key: text("key").notNull().unique(),
+    /** When `payload` was fetched (or, if nothing has ever been fetched, when it was last tried). */
+    fetchedAt: instant("fetched_at").notNull(),
+    /** When to try the source again. */
+    expiresAt: instant("expires_at").notNull(),
+    /** Whether the most recent attempt succeeded. `payload` keeps the last good value either way. */
+    ok: boolean("ok").notNull(),
+    payload: jsonb("payload").$type<unknown>(),
+    ...timestamps,
+  },
+  // pruneCached() finds rows nobody has asked for in a long time by this.
+  (t) => [index("signal_cache_expires_at_idx").on(t.expiresAt)],
+);
 
 /** Fixed-window counters. Read and write through src/lib/rate-limit.ts. */
 export const rateLimits = pgTable(

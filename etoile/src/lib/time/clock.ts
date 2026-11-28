@@ -1,6 +1,8 @@
 // Clock formatting: one instant, shown the way the product shows every time.
-// 12-hour time first; the 24-hour "military" time smaller beneath it with the zone
-// abbreviation (`1441 PST`). Pure. No React here: components take these strings and lay them out.
+// 12-hour time first. On the world clock the 24-hour "military" time sits smaller beneath it
+// with the zone abbreviation (`1441 PST`); everywhere else that line appears only for a person
+// who turned on "24-hour time everywhere" (product spec 3.4, users.show24hEverywhere).
+// Pure. No React here: components take these strings and lay them out.
 
 import { MINUS } from "./symbols";
 import { offsetMinutes, toEpochMs, utcToZoned, type InstantInput } from "./zoned";
@@ -10,12 +12,41 @@ export type TimeStyle = "12h_with_24h" | "12h" | "24h";
 /** users.militaryStyle: four digits with no colon, or with one. */
 export type MilitaryStyle = "1441" | "14:41";
 
+/**
+ * Where a time is shown.
+ *  - "clock": a world clock (Home, the clock on a share page). The 24-hour line is always on.
+ *  - "elsewhere": a schedule row, the arrivals board, a booking, anything else. The 24-hour line
+ *    is on only when the person asked for it everywhere.
+ */
+export type ClockContext = "clock" | "elsewhere";
+
 export type ClockOptions = {
   /** Default "12h_with_24h". */
   style?: TimeStyle;
   /** Default "1441". */
   militaryStyle?: MilitaryStyle;
+  /** Default "elsewhere": the 24-hour line is NOT shown unless `show24hEverywhere` is true. */
+  context?: ClockContext;
+  /** users.show24hEverywhere. Default false. */
+  show24hEverywhere?: boolean;
 };
+
+/**
+ * The options for formatClock from the signed-in person's settings, so no screen has to
+ * remember the rule about the 24-hour line:
+ *
+ *   formatClock(arrival.at, arrival.tz, clockOptionsFor(user, "elsewhere")).secondary   // null unless they asked
+ *   formatClock(now, clock.place.tz, clockOptionsFor(user, "clock")).secondary          // "1441 PST"
+ *
+ * Pass `null` for a visitor with no account (a share page): the defaults apply.
+ */
+export function clockOptionsFor(
+  user: { timeStyle: TimeStyle; militaryStyle: MilitaryStyle; show24hEverywhere: boolean } | null | undefined,
+  context: ClockContext,
+): ClockOptions {
+  if (!user) return { context };
+  return { style: user.timeStyle, militaryStyle: user.militaryStyle, show24hEverywhere: user.show24hEverywhere, context };
+}
 
 export type ClockReading = {
   /** The 12-hour parts. `text` is "2:41 PM" (a normal space; set `white-space: nowrap`). */
@@ -31,7 +62,11 @@ export type ClockReading = {
   offsetMinutes: number;
   /** The line to show largest, per `style`: "2:41 PM", or "14:41" / "1441" in 24-hour style. */
   primary: string;
-  /** The smaller line beneath, per `style`: "1441 PST" (or "14:41 PST"); null when the style has none. */
+  /**
+   * The smaller line beneath: "1441 PST" (or "14:41 PST"). Null when there is none to show:
+   * the style has no second line, or this is not a world clock and the person has not turned
+   * on 24-hour time everywhere (see ClockContext). Show it whenever it is not null.
+   */
   secondary: string | null;
   /** The 24-hour line with its zone regardless of style: "1441 PST". A UTC clock reads "1441Z". */
   military: string;
@@ -105,10 +140,11 @@ const pad2 = (n: number) => String(n).padStart(2, "0");
  *   c.h12.text   // "2:41 PM"
  *   c.h24.compact // "1441"      c.h24.colon // "14:41"
  *   c.zone       // "PST"
- *   c.primary    // "2:41 PM"    c.secondary // "1441 PST"
+ *   c.primary    // "2:41 PM"    c.secondary // null: not a world clock
+ *   formatClock(at, tz, { context: "clock" }).secondary // "1441 PST"
  *
- * `style` and `militaryStyle` come from the signed-in user (users.timeStyle, users.militaryStyle)
- * and only choose what `primary` and `secondary` say; the parts are always all there.
+ * The options come from the signed-in user: build them with clockOptionsFor(user, context).
+ * They only choose what `primary` and `secondary` say; the parts are always all there.
  */
 export function formatClock(
   instant: InstantInput,
@@ -117,6 +153,7 @@ export function formatClock(
 ): ClockReading {
   const style = options.style ?? "12h_with_24h";
   const militaryStyle = options.militaryStyle ?? "1441";
+  const show24h = (options.context ?? "elsewhere") === "clock" || options.show24hEverywhere === true;
   const z = utcToZoned(instant, tz);
 
   const period = z.hour < 12 ? "AM" : "PM";
@@ -138,7 +175,7 @@ export function formatClock(
     date: z.date,
     offsetMinutes: z.offsetMinutes,
     primary: style === "24h" ? digits : `${time12} ${period}`,
-    secondary: style === "12h_with_24h" ? military : null,
+    secondary: style === "12h_with_24h" && show24h ? military : null,
     military,
   };
 }

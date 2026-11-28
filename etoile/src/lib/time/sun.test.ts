@@ -6,6 +6,8 @@ import { utcToZoned, zonedToUtc } from "./zoned";
 
 // An independent implementation: the equations of NOAA's solar calculator spreadsheet
 // (gml.noaa.gov/grad/solcalc), evaluated for the instant of local noon. Used only as an oracle.
+// Like the library it takes the sun's position at noon for the whole day, so it cannot see the
+// error that shortcut makes near the poles; `followTheSun` below can.
 function noaa(lat: number, lon: number, date: string, tz: string) {
   const rad = Math.PI / 180;
   const noon = zonedToUtc(`${date}T12:00`, tz);
@@ -48,6 +50,72 @@ function noaa(lat: number, lon: number, date: string, tz: string) {
   } as const;
 }
 
+// A second, slower reference with no shortcut: the sun's height above the horizon from NOAA's
+// equations at each minute of the day, and the minutes at which it crosses the horizon.
+function sunHeight(lat: number, lon: number, ms: number): number {
+  const rad = Math.PI / 180;
+  const t = (ms / 86_400_000 + 2440587.5 - 2451545) / 36525;
+  const l0 = (((280.46646 + t * (36000.76983 + 0.0003032 * t)) % 360) + 360) % 360;
+  const m = 357.52911 + t * (35999.05029 - 0.0001537 * t);
+  const e = 0.016708634 - t * (0.000042037 + 0.0000001267 * t);
+  const c =
+    Math.sin(m * rad) * (1.914602 - t * (0.004817 + 0.000014 * t)) +
+    Math.sin(2 * m * rad) * (0.019993 - 0.000101 * t) +
+    Math.sin(3 * m * rad) * 0.000289;
+  const appLong = l0 + c - 0.00569 - 0.00478 * Math.sin((125.04 - 1934.136 * t) * rad);
+  const obliq =
+    23 + (26 + (21.448 - t * (46.815 + t * (0.00059 - t * 0.001813))) / 60) / 60 + 0.00256 * Math.cos((125.04 - 1934.136 * t) * rad);
+  const decl = Math.asin(Math.sin(obliq * rad) * Math.sin(appLong * rad));
+  const y = Math.tan((obliq / 2) * rad) ** 2;
+  const eqTime =
+    (4 / rad) *
+    (y * Math.sin(2 * l0 * rad) -
+      2 * e * Math.sin(m * rad) +
+      4 * e * y * Math.sin(m * rad) * Math.cos(2 * l0 * rad) -
+      0.5 * y * y * Math.sin(4 * l0 * rad) -
+      1.25 * e * e * Math.sin(2 * m * rad));
+  const minutesUtc = (((ms % 86_400_000) + 86_400_000) % 86_400_000) / 60_000;
+  const hourAngle = ((((minutesUtc + eqTime + 4 * lon) % 1440) + 1440) % 1440) / 4 - 180;
+  return Math.asin(Math.sin(lat * rad) * Math.sin(decl) + Math.cos(lat * rad) * Math.cos(decl) * Math.cos(hourAngle * rad)) / rad;
+}
+
+/** Sunrise before and sunset after `noonMs`, found by following the sun through the 24 hours around it. */
+function followTheSun(lat: number, lon: number, noonMs: number) {
+  const HORIZON = -0.833;
+  const MINUTE = 60_000;
+  let sunrise: number | null = null;
+  let sunset: number | null = null;
+  let minutesUp = 0;
+  let before = sunHeight(lat, lon, noonMs - 720 * MINUTE);
+  for (let i = -719; i <= 720; i++) {
+    const ms = noonMs + i * MINUTE;
+    const height = sunHeight(lat, lon, ms);
+    if (height > HORIZON) minutesUp++;
+    const crossedAt = ms - (MINUTE * (height - HORIZON)) / (height - before);
+    if (before <= HORIZON && height > HORIZON && i <= 0 && sunrise === null) sunrise = crossedAt;
+    if (before > HORIZON && height <= HORIZON && i > 0 && sunset === null) sunset = crossedAt;
+    before = height;
+  }
+  if (sunrise === null || sunset === null) return { kind: minutesUp > 720 ? "polar_day" : "polar_night" } as const;
+  return { kind: "normal", sunrise, sunset } as const;
+}
+
+/** Every day of 2026 at one place: the largest error on ordinary days, and the days the two disagree on what kind of day it is. */
+function yearAgainstTheSun(lat: number, lon: number, tz: string) {
+  let worstMinutes = 0;
+  const disagreements: string[] = [];
+  for (let i = 0; i < 365; i++) {
+    const date = addDays("2026-01-01", i);
+    const mine = sunTimes(lat, lon, date, tz);
+    const ref = followTheSun(lat, lon, mine.solarNoon.getTime());
+    if (mine.kind !== ref.kind) disagreements.push(date);
+    else if (ref.kind === "normal") {
+      worstMinutes = Math.max(worstMinutes, minutesApart(mine.sunrise!, ref.sunrise), minutesApart(mine.sunset!, ref.sunset));
+    }
+  }
+  return { worstMinutes, disagreements };
+}
+
 const minutesApart = (a: Date, b: number) => Math.abs(a.getTime() - b) / 60_000;
 const clock = (d: Date | null, tz: string) => (d ? formatClock(d, tz).h24.colon : null);
 
@@ -86,7 +154,10 @@ describe("sunTimes", () => {
     expect(minutesApart(mco.sunrise!, zonedToUtc("2026-12-19T07:13", "America/New_York").getTime())).toBeLessThan(4);
   });
 
-  it("agrees with NOAA's solar calculator within two minutes, everywhere and all year", () => {
+  it("agrees with NOAA's noon-based calculator within two minutes, all year, at thirteen places up to 61 degrees", () => {
+    // Both sides take the sun's position at noon for the whole day, so this checks the arithmetic
+    // and which solar day belongs to which date. It says nothing about higher latitudes: the
+    // two tests after this one do.
     let checked = 0;
     for (const place of PLACES) {
       for (let i = 0; i < 366; i += 3) {
@@ -104,6 +175,57 @@ describe("sunTimes", () => {
       }
     }
     expect(checked).toBe(PLACES.length * 122);
+  });
+
+  it("stays within four minutes of the sun itself up to 62 degrees, every day of the year", () => {
+    const places = [
+      { name: "Quito", lat: -0.18, lon: -78.47, tz: "America/Guayaquil" },
+      { name: "Orlando", lat: 28.54, lon: -81.38, tz: "America/New_York" },
+      { name: "Minneapolis", lat: 44.98, lon: -93.27, tz: "America/Chicago" },
+      { name: "London", lat: 51.51, lon: -0.13, tz: "Europe/London" },
+      { name: "Ushuaia", lat: -54.8, lon: -68.3, tz: "America/Argentina/Ushuaia" },
+      { name: "Anchorage", lat: 61.22, lon: -149.9, tz: "America/Anchorage" },
+    ];
+    for (const place of places) {
+      const year = yearAgainstTheSun(place.lat, place.lon, place.tz);
+      expect(year.disagreements, place.name).toEqual([]);
+      expect(year.worstMinutes, place.name).toBeLessThan(4);
+      expect(sunTimes(place.lat, place.lon, "2026-06-21", place.tz).approximate, place.name).toBe(false);
+    }
+  });
+
+  it("is only approximate near the poles, and says so", () => {
+    // Measured, not hoped for: around the start and end of the midnight sun and of the polar
+    // night the noon shortcut is out by up to half an hour, and the first or last such day can
+    // be a day off. The interface marks these places `approximate`.
+    const places = [
+      { name: "Rovaniemi", lat: 66.5, lon: 25.73, tz: "Europe/Helsinki" },
+      { name: "Tromsø", lat: 69.65, lon: 18.96, tz: "Europe/Oslo" },
+      { name: "Utqiagvik", lat: 71.29, lon: -156.79, tz: "America/Anchorage" },
+      { name: "Longyearbyen", lat: 78.22, lon: 15.63, tz: "Arctic/Longyearbyen" },
+      { name: "McMurdo", lat: -77.85, lon: 166.67, tz: "Antarctica/McMurdo" },
+    ];
+    let worstAnywhere = 0;
+    for (const place of places) {
+      const year = yearAgainstTheSun(place.lat, place.lon, place.tz);
+      worstAnywhere = Math.max(worstAnywhere, year.worstMinutes);
+      expect(year.worstMinutes, place.name).toBeLessThan(45);
+      // At most a handful of days a year, each at the edge of a polar season, are called differently.
+      expect(year.disagreements.length, `${place.name}: ${year.disagreements.join(", ")}`).toBeLessThanOrEqual(4);
+      for (const date of ["2026-03-20", "2026-06-21", "2026-12-21"]) {
+        expect(sunTimes(place.lat, place.lon, date, place.tz).approximate, `${place.name} ${date}`).toBe(true);
+      }
+    }
+    // If this ever drops below ten minutes the caveat (and `approximate`) can go.
+    expect(worstAnywhere).toBeGreaterThan(10);
+    // Away from the polar seasons the same places are as good as anywhere: Tromsø at the equinox.
+    const equinox = sunTimes(69.65, 18.96, "2026-03-20", "Europe/Oslo");
+    const ref = followTheSun(69.65, 18.96, equinox.solarNoon.getTime());
+    expect(ref.kind).toBe("normal");
+    if (ref.kind === "normal") {
+      expect(minutesApart(equinox.sunrise!, ref.sunrise)).toBeLessThan(6);
+      expect(minutesApart(equinox.sunset!, ref.sunset)).toBeLessThan(6);
+    }
   });
 
   it("returns the sunrise and sunset of the requested local date", () => {

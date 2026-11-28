@@ -25,7 +25,9 @@ applies the migrations in `drizzle/`.
 
 When several people or tools share one checkout, start the server with
 `scripts/dev-ensure.sh` instead: it makes sure exactly one development server is running on
-port 3000 and is safe to call as often as you like (`--status`, `--stop`, `--restart`).
+port 3000 and is safe to call as often as you like (`--status`, `--stop`, `--restart`). It
+starts the server on this machine only (`--hostname localhost`) and never restarts one that is
+running unless asked to. `scripts/dev-ensure.test.sh` tries its lock with many callers at once.
 
 | Command | What it does |
 | --- | --- |
@@ -35,7 +37,7 @@ port 3000 and is safe to call as often as you like (`--status`, `--stop`, `--res
 | `npm run lint` | ESLint |
 | `npm test` | unit tests (Vitest) |
 | `npm run e2e` | build, then end-to-end tests against the production server |
-| `npm run e2e:dev` | end-to-end tests against the running development server |
+| `npm run e2e:dev` | end-to-end tests against the running development server (also what a bare `npx playwright test` does) |
 | `npm run db:generate -- --name <what>` | write a new migration after editing `src/db/schema.ts` |
 | `npm run db:migrate` | apply migrations (to `DATABASE_URL`, or to the local database) |
 | `npm run db:reset` | delete the local database (stop the server first) |
@@ -48,8 +50,8 @@ locally, set `DATABASE_URL`; the same code and the same migrations are used.
 ```bash
 npm run typecheck
 npm run lint
-npm test                 # 235 unit tests: time, ids, slugs, passwords, sessions, cache,
-                         # rate limiter, domain schemas, and every database table
+npm test                 # unit tests: time, ids, slugs, passwords, sessions, cache, rate
+                         # limiter, domain schemas, guest access, and every database table
 npm run e2e              # builds, starts a production server on port 3411, runs Playwright
 ```
 
@@ -58,11 +60,16 @@ npm run e2e              # builds, starts a production server on port 3411, runs
   never touch `./.data`.
 - End-to-end tests are in `e2e/`. `npm run e2e` tests the production build with its own
   throwaway database (`./.data/pglite-e2e`). `npm run e2e:dev` tests the development server.
+  A bare `npx playwright test` also tests the development server; production mode
+  (`E2E_MODE=start`, or `npm run e2e`, or CI) refuses to run when the build in `.next` is
+  missing or older than the source.
 - Playwright needs a Chromium that matches `@playwright/test` (pinned in `package.json`). On a
   machine that does not have one yet, run `npx playwright install chromium` once. (The build
   machines this project was started on already have it; there, never run that command.)
 - `node scripts/shot.mjs <path>` saves full-page screenshots of a page at desktop and phone
-  widths, in light and dark, signed in as a fresh test account.
+  widths, in light and dark, signed in as a fresh test account. It prints the files it wrote
+  (each run gets its own four-character suffix) and exits 1 if the page was an error page or
+  a redirect.
 
 ## Deploy it to Vercel
 
@@ -88,17 +95,28 @@ The app needs one thing from the host: a Postgres database.
    which runs `drizzle-kit migrate && next build`. The migrations in `drizzle/` are applied to
    the database before the new code is built, so a deploy fails before it goes live if a
    migration fails. (Project → Settings → Build & Development Settings → Build Command.)
-4. **Deploy.** `GET /api/health` answers `{"ok":true,"app":"etoile","driver":"node-postgres"}`
-   when the app can reach the database.
+4. **Deploy.** `GET /api/health` answers `{"ok":true,"app":"etoile"}` when the app can reach
+   the database, and nothing else: it needs no sign-in, so it does not say where the database is.
 
 Things to know:
 
 - On Vercel the app never migrates at request time and refuses to start on the embedded
   database (a function's file system is read-only and per-instance). Both are deliberate.
 - The session cookie is `__Host-etoile_session`: `Secure`, `HttpOnly`, `SameSite=Lax`. It needs
-  HTTPS, which Vercel provides.
+  HTTPS, which Vercel provides. A session ends after 30 days without a visit and after 90 days
+  at the latest. `SESSION_COOKIE_INSECURE` is ignored on Vercel.
 - Rate limiting is always on in production (`RATE_LIMIT_DISABLED` is ignored on Vercel). It
-  keys on the visitor's address as Vercel reports it.
+  keys on the visitor's address as Vercel reports it, and on things that are not an address
+  (the account, the page, the whole site) so that many addresses cannot get around it.
+- **Anywhere else than Vercel, set `TRUSTED_PROXY_COUNT`** to the number of reverse proxies in
+  front of the app (1 for a single load balancer). Without it the app cannot know a visitor's
+  address: it trusts no `X-Forwarded-For` or `X-Real-IP` header, applies no per-address limits
+  (the per-account and site-wide ones still hold) and logs a warning. `SIGN_UP_MAX_PER_HOUR`
+  (default 200) is the ceiling on new accounts for the whole site.
+- Every response carries a Content-Security-Policy and the usual security headers
+  (`next.config.ts`); `Strict-Transport-Security` is sent outside development.
+- A failed database statement is logged with its SQL, its SQLSTATE and the constraint, never
+  with the values it carried (`src/db/redact.ts`).
 - Telemetry is off (`NEXT_TELEMETRY_DISABLED=1`); set the same variable in the Vercel project.
 - Nothing has been deployed from this repository yet. The steps above follow the code paths
   that exist (`src/db/index.ts`, `drizzle.config.ts`, `next.config.ts`) and were exercised
@@ -113,9 +131,10 @@ src/app/            routes: /, /sign-in, /sign-up, /api/health (bare pages, no d
 src/features/       auth (sign up, sign in, sign out); placeholders for home, landing, example plan
 src/lib/time/       time zones, clocks, sunrise and sunset, calendar dates
 src/lib/domain/     Zod schemas and types for every JSON shape and fixed list in the data model
-src/lib/auth/       password hashing, sessions, requireUser, requirePlan
+src/lib/auth/       password hashing and rules, sessions, requireUser, requirePlan, plan-scoped id checks
+src/lib/guest/      share-page access: guest links, the passcode, the public form of a plan
 src/lib/            ids, slugs, brand, read-through cache, rate limiter, action results
-src/db/             schema (17 tables), database client, test helper
-drizzle/            generated SQL migration
+src/db/             schema (17 tables), database client, removePerson, error redaction, test helper
+drizzle/            generated SQL migrations
 e2e/, scripts/      end-to-end tests; dev-ensure.sh and shot.mjs
 ```

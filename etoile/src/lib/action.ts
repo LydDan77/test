@@ -37,11 +37,25 @@ export function fail(
   return { ok: false, error, ...extra };
 }
 
+/** What invalid() reads: a ZodError, or anything else that carries Zod issues. */
+type IssueList = { issues: readonly { path: readonly PropertyKey[]; message: string }[] };
+
 /**
  * Turns a failed Zod parse into an ActionFailure: each field's messages under its name, and the
  * first message as the summary.
+ *
+ *   if (!parsed.success) return invalid(parsed.error, values);
+ *
+ * It also takes the issues of a domain helper that does not hand back a ZodError:
+ *
+ *   const details = parseBookingDetails(kind, input);
+ *   if (!details.ok) return invalid({ issues: details.issues }, values);
+ *
+ * The messages are shown to the person as they are, so give every rule in your schema a
+ * message of its own ("Enter a name"); Zod's built-in ones ("Too small: expected string to have
+ * >=1 characters") are not wording for people.
  */
-export function invalid(error: z.ZodError, values?: ActionFailure["values"]): ActionFailure {
+export function invalid(error: z.ZodError | IssueList, values?: ActionFailure["values"]): ActionFailure {
   const fieldErrors: Record<string, string[]> = {};
   for (const issue of error.issues) {
     const field = issue.path.length ? String(issue.path[0]) : "";
@@ -52,8 +66,20 @@ export function invalid(error: z.ZodError, values?: ActionFailure["values"]): Ac
   return { ok: false, error: first, fieldErrors, ...(values ? { values } : {}) };
 }
 
-/** Reads a text field from FormData: always a string, trimmed. Files and missing fields give "". */
+// Control characters other than tab and line breaks. Nobody types them, a paste or a hostile
+// request can carry them, and Postgres refuses U+0000 in text outright (a failed statement,
+// logged with every value it carried).
+const CONTROL_CHARACTERS = /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f-\u009f]/g;
+
+/**
+ * Reads a text field from FormData: always a string, trimmed, with control characters removed
+ * (tabs and line breaks stay, for multi-line fields). Files and missing fields give "".
+ *
+ * An input left empty gives "". The optional text fields of the domain schemas refuse "": use
+ * `formText(formData, "notes") || undefined`, or withoutEmptyText() from "@/lib/domain" for a
+ * whole object.
+ */
 export function formText(formData: FormData, name: string): string {
   const value = formData.get(name);
-  return typeof value === "string" ? value.trim() : "";
+  return typeof value === "string" ? value.replace(CONTROL_CHARACTERS, "").trim() : "";
 }

@@ -4,9 +4,14 @@ import { mkdirSync } from "node:fs";
 import path from "node:path";
 import type { PgDatabase, PgQueryResultHKT } from "drizzle-orm/pg-core";
 import { io } from "next/cache";
+import { installQueryErrorRedaction } from "./redact";
 import * as schema from "./schema";
 
 export { schema };
+
+// From here on, a statement that fails throws an error without the values it carried
+// (src/db/redact.ts): nothing a person typed, and no secret, reaches the server log that way.
+installQueryErrorRedaction();
 
 /**
  * One database type for the whole app. Both drivers extend PgDatabase, so the query builder,

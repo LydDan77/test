@@ -42,6 +42,10 @@ export const flightSegmentSchema = z
   .refine((s) => Date.parse(s.arrivesAt) > Date.parse(s.departsAt), {
     message: "A flight lands after it takes off",
     path: ["arrivesAt"],
+  })
+  .refine((s) => s.originIata !== s.destinationIata, {
+    message: "A flight lands at a different airport from the one it leaves",
+    path: ["destinationIata"],
   });
 export type FlightSegment = z.infer<typeof flightSegmentSchema>;
 
@@ -62,7 +66,15 @@ export const flightSearchSchema = z.object({
     .array(z.object({ originIata: airportCodeSchema, destinationIata: airportCodeSchema, date: localDateSchema }))
     .max(8)
     .optional(),
-});
+})
+  .refine((search) => !search.departDate || !search.returnDate || search.returnDate >= search.departDate, {
+    message: "The return is on or after the day you leave",
+    path: ["returnDate"],
+  })
+  .refine((search) => !search.originIata || !search.destinationIata || search.originIata !== search.destinationIata, {
+    message: "Choose two different airports",
+    path: ["destinationIata"],
+  });
 export type FlightSearch = z.infer<typeof flightSearchSchema>;
 
 export const flightDetailsSchema = z.object({
@@ -70,7 +82,12 @@ export const flightDetailsSchema = z.object({
   tripType: z.enum(FLIGHT_TRIP_TYPES).optional(),
   cabin: z.enum(CABINS).optional(),
   search: flightSearchSchema.optional(),
-  /** Recorded flights, in travel order. Empty until the booking is recorded. */
+  /**
+   * Recorded flights, in the order the person gave them. Empty until the booking is recorded.
+   * The schema does NOT check that each flight leaves after the one before it lands: a booking
+   * like that is saved and then pointed out to the person (detectConflicts in src/lib/itinerary
+   * reports the connection). Code that reads segments must not assume they are in time order.
+   */
   segments: z.array(flightSegmentSchema).max(12).default([]),
 });
 export type FlightDetails = z.infer<typeof flightDetailsSchema>;

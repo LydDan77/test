@@ -93,15 +93,27 @@ describe("the test database", () => {
 });
 
 describe("a representative row in every table", () => {
-  // Filled in as the tests run, in order.
-  const ids = {} as Record<"user" | "plan" | "party" | "lydia" | "mark" | "flight" | "lodging" | "expense", string>;
+  // ONE STORY, TOLD IN ORDER. Each test adds rows the later ones build on (the user, then the
+  // plan, then its people, bookings …), so this block is run whole: a single test picked out
+  // with `-t` fails at once with a message that says so, instead of with a puzzling database
+  // error. Tests that stand alone are in the other describe blocks and in people.test.ts.
+  const made = {} as Partial<Record<"user" | "plan" | "party" | "lydia" | "mark" | "flight" | "lodging" | "expense", string>>;
+  const ids = new Proxy(made, {
+    get(target, name: string) {
+      const value = target[name as keyof typeof made];
+      if (value === undefined) throw new Error(`"${name}" has not been created yet: run this describe block whole, its tests build on one another`);
+      return value;
+    },
+  }) as Record<keyof typeof made, string>;
+  /** Long enough for a clock that counts milliseconds to have moved on. */
+  const aMoment = () => new Promise((resolve) => setTimeout(resolve, 15));
 
   it("users", async () => {
     const [user] = await t.db
       .insert(schema.users)
       .values({ email: "lydia@example.com", name: "Lydia Hartley", passwordHash: "scrypt$1$1$1$a$b", home, homeAirportIata: "SEA", currency: "USD" })
       .returning();
-    ids.user = user.id;
+    made.user = user.id;
     expect(isId(user.id)).toBe(true);
     expect(user).toMatchObject({
       email: "lydia@example.com", name: "Lydia Hartley", home, homeAirportIata: "SEA",
@@ -146,7 +158,7 @@ describe("a representative row in every table", () => {
         kindsInUse: ["flight", "lodging", "car", "ride", "meal", "shipment"], kindsNotNeeded: [], isExample: true,
       })
       .returning();
-    ids.plan = plan.id;
+    made.plan = plan.id;
     expect(plan).toMatchObject({
       template: "family_event", workMode: null, title: "Hartley Family Christmas", destination: orlando, origin: home,
       startDate: "2026-12-19", endDate: "2026-12-27", dateStatus: "fixed", tz: "America/New_York", expectedPeople: 11,
@@ -174,7 +186,7 @@ describe("a representative row in every table", () => {
 
   it("parties", async () => {
     const [party] = await t.db.insert(schema.parties).values({ planId: ids.plan, name: "The Seattle Hartleys", origin: home, notes: "Arriving together", sortOrder: 0 }).returning();
-    ids.party = party.id;
+    made.party = party.id;
     expect(party).toMatchObject({ name: "The Seattle Hartleys", origin: home, notes: "Arriving together" });
     // The personal link is a secret token, made by the database layer.
     expect(isToken(party.guestToken)).toBe(true);
@@ -192,7 +204,7 @@ describe("a representative row in every table", () => {
         canDrive: true, vehicleSeats: 5, rsvpStatus: "yes", rsvpAt: new Date("2026-11-20T18:00:00Z"), rsvpVia: "organizer",
       })
       .returning();
-    ids.lydia = lydia.id;
+    made.lydia = lydia.id;
     const [mark] = await t.db
       .insert(schema.people)
       .values({
@@ -201,7 +213,7 @@ describe("a representative row in every table", () => {
         rsvpStatus: "maybe", rsvpVia: "site_form", rsvpAnswers: { q1: ["Vegetarian"], q2: "Saturday", q3: true, q4: 2 }, messageToHost: "Can't wait", needsHostConfirmation: true,
       })
       .returning();
-    ids.mark = mark.id;
+    made.mark = mark.id;
     expect(lydia).toMatchObject({ role: "organizer", ageGroup: "adult", childAge: null, dietaryTags: [], canDrive: true, vehicleSeats: 5, rsvpStatus: "yes", rsvpVia: "organizer", rsvpAnswers: {}, needsHostConfirmation: false, guestToken: null });
     expect(lydia.rsvpAt?.toISOString()).toBe("2026-11-20T18:00:00.000Z");
     expect(mark).toMatchObject({
@@ -222,7 +234,7 @@ describe("a representative row in every table", () => {
         actBy: { recommended: "2026-11-28", hard: "2026-12-12" }, cancelBy: new Date("2026-11-27T08:00:00Z"), notes: "Seats together", details: flightDetails,
       })
       .returning();
-    ids.flight = flight.id;
+    made.flight = flight.id;
     expect(flight).toMatchObject({
       kind: "flight", status: "booked", title: "AS 1054 SEA to MCO", personIds: [ids.lydia, ids.mark], confirmationCode: "KQ7RTX",
       priceAmount: 124800, priceCurrency: "USD", paidByPersonId: ids.lydia, expenseId: null, startTz: "America/Los_Angeles", endTz: "America/New_York",
@@ -254,7 +266,7 @@ describe("a representative row in every table", () => {
     expect(rest.map((b) => b.kind)).toEqual(["lodging", "car", "ride", "meal", "shipment"]);
     expect(rest.map((b) => b.details.kind)).toEqual(["lodging", "car", "ride", "meal", "shipment"]);
     expect(rest[1]).toMatchObject({ status: "needed", personIds: [], actBy: {}, priceAmount: null, startsAt: null });
-    ids.lodging = rest[0].id;
+    made.lodging = rest[0].id;
     const shipment = rest[4].details as ShipmentDetails;
     expect(shipment.parcels[0]).toEqual({ trackingNumber: "1Z999AA10123456784", status: "shipped" });
     expect(shipment.international).toBe(false);
@@ -283,9 +295,12 @@ describe("a representative row in every table", () => {
       .returning();
     expect(handoff).toMatchObject({ provider: "google_flights", linkGrade: "observed", unfilled: [{ label: "Child ages", value: "9, 6" }], outcome: null, resolvedAt: null });
     expect(handoff.openedAt).toBeInstanceOf(Date);
+    await aMoment();
     const [resolved] = await t.db.update(schema.handoffs).set({ outcome: "booked", resolvedAt: new Date("2026-11-27T20:00:00Z") }).where(eq(schema.handoffs.id, handoff.id)).returning();
     expect(resolved.outcome).toBe("booked");
-    expect(resolved.updatedAt.getTime()).toBeGreaterThanOrEqual(handoff.updatedAt.getTime());
+    // db.update() moves updatedAt on by itself; createdAt stays.
+    expect(resolved.updatedAt.getTime()).toBeGreaterThan(handoff.updatedAt.getTime());
+    expect(resolved.createdAt.getTime()).toBe(handoff.createdAt.getTime());
   });
 
   it("arrivals: one per party per direction", async () => {
@@ -355,7 +370,7 @@ describe("a representative row in every table", () => {
         reimbursable: false, billable: false, projectCode: null, attendeeIds: [ids.lydia, ids.mark], bookingId: ids.flight, receipt: "not_required", status: "paid",
       })
       .returning();
-    ids.expense = expense.id;
+    made.expense = expense.id;
     expect(expense).toMatchObject({
       date: "2026-11-27", merchant: "Alaska Airlines", category: "airfare", amount: 124800, currency: "USD", paidByPersonId: ids.lydia, paymentMethod: "personal_card",
       split: { method: "equal", parts: [{ personId: ids.lydia }, { personId: ids.mark }] }, attendeeIds: [ids.lydia, ids.mark], bookingId: ids.flight, receipt: "not_required", status: "paid",
@@ -364,10 +379,37 @@ describe("a representative row in every table", () => {
     expect(plain).toMatchObject({ paidByPersonId: null, paymentMethod: "personal_card", split: { method: "none", parts: [] }, reimbursable: false, billable: false, attendeeIds: [], bookingId: null, receipt: "none", status: "paid" });
 
     // A booking can point at the expense recorded for it.
+    const [before] = await t.db.select().from(schema.bookings).where(eq(schema.bookings.id, ids.flight));
+    await aMoment();
     await t.db.update(schema.bookings).set({ expenseId: expense.id }).where(eq(schema.bookings.id, ids.flight));
     const [booking] = await t.db.select().from(schema.bookings).where(eq(schema.bookings.id, ids.flight));
     expect(booking.expenseId).toBe(expense.id);
-    expect(booking.updatedAt.getTime()).toBeGreaterThanOrEqual(booking.createdAt.getTime());
+    expect(booking.updatedAt.getTime()).toBeGreaterThan(before.updatedAt.getTime());
+    expect(booking.updatedAt.getTime()).toBeGreaterThan(booking.createdAt.getTime());
+  });
+
+  it("money: amounts past two billion minor units fit, and a currency is three capital letters", async () => {
+    // 3,000,000,000 dong is about 120,000 US dollars: an ordinary amount in a currency with no decimals.
+    const [big] = await t.db.insert(schema.expenses).values({ planId: ids.plan, date: "2026-12-21", merchant: "Venue", category: "other", amount: 3_000_000_000, currency: "VND" }).returning();
+    expect(big.amount).toBe(3_000_000_000);
+    expect(typeof big.amount).toBe("number");
+    const [budget] = await t.db.update(schema.plans).set({ budgetTotal: 2_500_000_000 }).where(eq(schema.plans.id, ids.plan)).returning();
+    expect(budget.budgetTotal).toBe(2_500_000_000);
+    const [priced] = await t.db.update(schema.bookings).set({ priceAmount: 9_000_000_000, priceCurrency: "IDR" }).where(eq(schema.bookings.id, ids.lodging)).returning();
+    expect(priced.priceAmount).toBe(9_000_000_000);
+    // Put things back for the tests that follow.
+    await t.db.delete(schema.expenses).where(eq(schema.expenses.id, big.id));
+    await t.db.update(schema.plans).set({ budgetTotal: 650000 }).where(eq(schema.plans.id, ids.plan));
+    await t.db.update(schema.bookings).set({ priceAmount: null, priceCurrency: null }).where(eq(schema.bookings.id, ids.lodging));
+
+    // A stored "dollars" would break every screen that formats it: the database refuses it.
+    for (const bad of ["dollars", "usd", "US", "", "USDX", " USD"]) {
+      expect(isCheckViolation(await failure(t.db.update(schema.plans).set({ currency: bad }).where(eq(schema.plans.id, ids.plan)))), bad).toBe(true);
+      expect(isCheckViolation(await failure(t.db.update(schema.users).set({ currency: bad }).where(eq(schema.users.id, ids.user)))), bad).toBe(true);
+      expect(isCheckViolation(await failure(t.db.insert(schema.expenses).values({ planId: ids.plan, date: "2026-12-21", merchant: "x", category: "other", amount: 1, currency: bad }))), bad).toBe(true);
+      expect(isCheckViolation(await failure(t.db.update(schema.bookings).set({ priceAmount: 1, priceCurrency: bad }).where(eq(schema.bookings.id, ids.lodging)))), bad).toBe(true);
+      expect(isCheckViolation(await failure(t.db.insert(schema.settlements).values({ planId: ids.plan, fromPersonId: ids.mark, toPersonId: ids.lydia, amount: 1, currency: bad }))), bad).toBe(true);
+    }
   });
 
   it("settlements", async () => {
@@ -525,6 +567,15 @@ describe("a representative row in every table", () => {
   });
 
   it("deleting a plan deletes everything in it; deleting a user deletes everything of theirs", async () => {
+    // Make sure every table really has something to lose (the hand-offs went with the flight above).
+    const [car] = await t.db.select().from(schema.bookings).where(eq(schema.bookings.planId, ids.plan)).limit(1);
+    await t.db.insert(schema.handoffs).values({ bookingId: car.id, planId: ids.plan, provider: "kayak", url: "https://www.kayak.com/cars", linkGrade: "documented" });
+    for (const table of [schema.parties, schema.people, schema.arrivals, schema.bookings, schema.handoffs, schema.itineraryItems, schema.tasks, schema.expenses, schema.settlements] as const) {
+      expect((await t.db.select().from(table).where(eq(table.planId, ids.plan))).length, `${getTableName(table)} before`).toBeGreaterThan(0);
+    }
+    expect(await t.db.select().from(schema.sites).where(eq(schema.sites.planId, ids.plan))).toHaveLength(1);
+    expect(await t.db.select().from(schema.briefingStates).where(eq(schema.briefingStates.planId, ids.plan))).toHaveLength(1);
+
     await t.db.delete(schema.plans).where(eq(schema.plans.id, ids.plan));
     for (const table of [schema.parties, schema.people, schema.arrivals, schema.bookings, schema.handoffs, schema.itineraryItems, schema.tasks, schema.expenses, schema.settlements] as const) {
       expect(await t.db.select().from(table).where(eq(table.planId, ids.plan)), getTableName(table)).toEqual([]);
@@ -544,6 +595,37 @@ describe("a representative row in every table", () => {
     // Shared caches belong to nobody and stay.
     expect((await t.db.select().from(schema.signalCache)).length).toBe(2);
     expect((await t.db.select().from(schema.rateLimits)).length).toBe(1);
+  });
+});
+
+describe("indexes", () => {
+  it("has an index that leads with every foreign-key column, so removing a row never scans a whole table", async () => {
+    // For each foreign key, the column that picks out the referencing rows: the key's own column,
+    // or for a (plan_id, x) pair the x. Is there an index that starts with it?
+    const result = await t.db.execute(sql`
+      with keys as (
+        select c.conrelid, c.conname, a.attname, a.attnum, array_length(c.conkey, 1) as width
+        from pg_constraint c
+        join unnest(c.conkey) as k(attnum) on true
+        join pg_attribute a on a.attrelid = c.conrelid and a.attnum = k.attnum
+        where c.contype = 'f' and c.connamespace = 'public'::regnamespace
+      )
+      select k.conrelid::regclass::text as "table", k.conname as "constraint", k.attname as "column"
+      from keys k
+      where (k.width = 1 or k.attname <> 'plan_id')
+        and not exists (select 1 from pg_index i where i.indrelid = k.conrelid and (i.indkey::int2[])[0] = k.attnum)
+      order by 1, 3`);
+    const missing = (result as unknown as { rows: { table: string; constraint: string; column: string }[] }).rows;
+    expect(missing.map((row) => `${row.table}.${row.column}`)).toEqual([]);
+
+    // The check itself can fail: it sees a foreign key with no index when there is one.
+    await t.db.execute(sql`create table fk_probe (id text primary key, user_id text references users(id))`);
+    const probe = await t.db.execute(sql`
+      select 1 from pg_constraint c
+      where c.conrelid = 'fk_probe'::regclass and c.contype = 'f'
+        and not exists (select 1 from pg_index i where i.indrelid = c.conrelid and (i.indkey::int2[])[0] = c.conkey[1])`);
+    expect((probe as unknown as { rows: unknown[] }).rows).toHaveLength(1);
+    await t.db.execute(sql`drop table fk_probe`);
   });
 });
 

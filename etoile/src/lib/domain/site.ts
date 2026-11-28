@@ -3,7 +3,7 @@
 // (people.rsvpAnswers). Product spec 7.6, 7.12 and 9.1.
 
 import { z } from "zod";
-import { httpUrlSchema, idSchema, instantSchema, longText, shortText } from "./common";
+import { cleanText, httpUrlSchema, idSchema, instantSchema, longText, shortText } from "./common";
 import {
   RSVP_BUILT_INS,
   RSVP_QUESTION_TYPES,
@@ -15,20 +15,58 @@ import {
 // --- sections -----------------------------------------------------------------------------------
 
 /**
+ * Sections that can never be shown to everyone, whatever the organizer picks (product spec 9.1:
+ * Arrivals is "Guests only (cannot be made public)").
+ *
+ * The rule is applied in two places, and both are needed:
+ *  - siteSectionSchema stores such a section as "guests" whatever was sent;
+ *  - anything that decides what a visitor sees asks sectionVisibility() or sectionIsVisibleTo(),
+ *    never `section.visibility` itself, so a row written some other way is still safe.
+ */
+export const GUESTS_ONLY_SECTION_TYPES: ReadonlySet<SiteSectionType> = new Set(["arrivals"]);
+
+/**
  * One section of a share page. The list in sites.sections is in display order.
  * `content` holds the text and settings a person typed for that section; sections that fill
  * themselves from the plan (schedule, stay, who, weather …) usually leave it empty.
  * A section with nothing to show never renders, whatever `enabled` says.
+ * A type in GUESTS_ONLY_SECTION_TYPES always comes out with visibility "guests".
  */
-export const siteSectionSchema = z.object({
-  type: z.enum(SITE_SECTION_TYPES),
-  enabled: z.boolean(),
-  /** "guests" = only people who opened a personal link or entered the passcode. */
-  visibility: z.enum(SECTION_VISIBILITIES),
-  titleOverride: shortText(80).optional(),
-  content: z.record(z.string(), z.unknown()).default({}),
-});
+export const siteSectionSchema = z
+  .object({
+    type: z.enum(SITE_SECTION_TYPES),
+    enabled: z.boolean(),
+    /** "guests" = only people who opened a personal link or entered the passcode. */
+    visibility: z.enum(SECTION_VISIBILITIES),
+    titleOverride: shortText(80).optional(),
+    content: z.record(z.string(), z.unknown()).default({}),
+  })
+  .overwrite((section) =>
+    GUESTS_ONLY_SECTION_TYPES.has(section.type) && section.visibility !== "guests"
+      ? { ...section, visibility: "guests" as const }
+      : section,
+  );
 export type SiteSection = z.infer<typeof siteSectionSchema>;
+
+/**
+ * Who may see a section: what was stored, except that a guests-only type is "guests" whatever
+ * was stored. Every public query decides with this (or sectionIsVisibleTo).
+ */
+export function sectionVisibility(section: Pick<SiteSection, "type" | "visibility">): SiteSection["visibility"] {
+  return GUESTS_ONLY_SECTION_TYPES.has(section.type) ? "guests" : section.visibility;
+}
+
+/**
+ * True when a share page shows this section to that visitor. "guest" is someone who opened a
+ * personal link or entered the passcode; "everyone" is anyone with the address.
+ */
+export function sectionIsVisibleTo(
+  section: Pick<SiteSection, "type" | "visibility" | "enabled">,
+  viewer: "everyone" | "guest",
+): boolean {
+  if (!section.enabled) return false;
+  return viewer === "guest" || sectionVisibility(section) === "everyone";
+}
 
 /** sites.sections. "notes" (a section of your own) may appear up to three times; every other type once. */
 export const siteSectionsSchema = z
@@ -47,9 +85,6 @@ export const siteSectionsSchema = z
       }
     }
   });
-
-/** Sections that can never be shown to everyone, whatever the organizer picks (product spec 9.1). */
-export const GUESTS_ONLY_SECTION_TYPES: ReadonlySet<SiteSectionType> = new Set(["arrivals"]);
 
 // Content shapes for the sections a person types into. Everything is optional, so a freshly
 // enabled section parses. Sections not listed here keep whatever settings their feature needs.
@@ -120,6 +155,10 @@ export const rsvpQuestionSchema = z
   .refine((q) => (q.type !== "choice" && q.type !== "multi") || (q.options?.length ?? 0) >= 2, {
     message: "Give at least two options to choose from",
     path: ["options"],
+  })
+  .refine((q) => !q.options || new Set(q.options).size === q.options.length, {
+    message: "Two of the options are the same",
+    path: ["options"],
   });
 export type RsvpQuestion = z.infer<typeof rsvpQuestionSchema>;
 
@@ -158,7 +197,9 @@ export function validateRsvpAnswers(
   const errors: Record<string, string> = {};
 
   for (const q of questions) {
-    const value = given[q.id];
+    // Text is cleaned and trimmed first, so an answer of only spaces is no answer.
+    const raw = given[q.id];
+    const value = typeof raw === "string" ? cleanText(raw).trim() : raw;
     const empty =
       value === undefined || value === null || value === "" || (Array.isArray(value) && value.length === 0);
     if (empty) {
@@ -167,7 +208,7 @@ export function validateRsvpAnswers(
     }
     switch (q.type) {
       case "text":
-        if (typeof value === "string" && value.trim().length <= 2000) clean[q.id] = value.trim();
+        if (typeof value === "string" && value.length <= 2000) clean[q.id] = value;
         else errors[q.id] = "Please keep this shorter";
         break;
       case "choice":
@@ -185,7 +226,9 @@ export function validateRsvpAnswers(
         else errors[q.id] = "Answer yes or no";
         break;
       case "number": {
-        const n = typeof value === "number" ? value : typeof value === "string" ? Number(value) : Number.NaN;
+        // Plain digits only, as a person writes a count: "2", "2.5". Not "0x10", "1e5" or " ".
+        const n =
+          typeof value === "number" ? value : typeof value === "string" && /^\d+(\.\d+)?$/.test(value) ? Number(value) : Number.NaN;
         if (Number.isFinite(n) && n >= 0 && n <= 100_000) clean[q.id] = n;
         else errors[q.id] = "Enter a number";
         break;

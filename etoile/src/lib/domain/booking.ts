@@ -46,14 +46,31 @@ export const bookingDetailsSchemas = {
 
 export type ParsedBookingDetails<K extends BookingKind> =
   | { ok: true; details: BookingDetailsOf<K> }
-  | { ok: false; error: string; issues: z.core.$ZodIssue[] };
+  | {
+      ok: false;
+      /** The first problem, with the path of the field. Developer wording: for logs, not for people. */
+      error: string;
+      issues: z.core.$ZodIssue[];
+    };
 
 /**
  * Validates `details` against the booking's kind and fills in the defaults.
  *
- *   const parsed = parseBookingDetails(booking.kind, input);
- *   if (!parsed.ok) return { ok: false, error: parsed.error };
+ *   const parsed = parseBookingDetails(booking.kind, withoutEmptyText(input));
+ *   if (!parsed.ok) {
+ *     console.error("[stay] details refused:", parsed.error);          // developer wording: for the log
+ *     return fail("Check the dates and try again.", { values });       // your own sentence for the person
+ *   }
  *   await db.update(bookings).set({ details: parsed.details })…
+ *
+ * `parsed.error` reads like "segments.0.arrivesAt: A flight lands after it takes off" or
+ * "propertyName: Too small: expected string to have >=1 characters". It names fields by their
+ * path and is NOT wording for people: log it, and say something of your own. For messages beside
+ * single fields, `invalid({ issues: parsed.issues }, values)` (src/lib/action.ts) files each
+ * issue under its top-level field name.
+ *
+ * A form sends "" for a field left empty, and the optional text fields here refuse "": pass
+ * form input through withoutEmptyText() first, as above.
  *
  * `details.kind` may be left out (it is filled in from `kind`); when present it must match.
  * Never throws: bad input comes back as `{ ok: false }` with the first problem in `error`.
@@ -91,7 +108,11 @@ export const actBySchema = z.object({
   hard: localDateSchema.optional(),
   /** The first day the provider lets you book. */
   opensOn: localDateSchema.optional(),
-});
+})
+  .refine((actBy) => !actBy.recommended || !actBy.hard || actBy.hard >= actBy.recommended, {
+    message: "The last possible day cannot be before the recommended one",
+    path: ["hard"],
+  });
 export type ActBy = z.infer<typeof actBySchema>;
 
 /** One thing a hand-off link could not prefill, shown with a copy button (handoffs.unfilled). */

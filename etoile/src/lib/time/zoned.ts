@@ -15,7 +15,11 @@ export type LocalDateTime = {
   second?: number;
 };
 
-/** An instant in any of the forms the app passes around: Date, epoch milliseconds, ISO string. */
+/**
+ * An instant in any of the forms the app passes around: a Date, epoch milliseconds, or an ISO
+ * 8601 string that says which zone it is written in ("2026-12-19T22:41:00Z", or with an offset
+ * such as "+05:30"). A string with no Z and no offset is not an instant: see toEpochMs.
+ */
 export type InstantInput = Date | number | string;
 
 /** What the clocks in one zone show at one instant. */
@@ -72,32 +76,80 @@ export function isValidTimeZone(timeZone: unknown): timeZone is string {
   }
 }
 
+// "Etc/GMT+5" is a fixed UTC-5 all year (and its sign is the reverse of what it looks like).
+const FIXED_OFFSET_ZONE = /^Etc\/GMT[+-]\d{1,2}$/i;
+const ZONE_SHAPE = /^[A-Za-z][A-Za-z0-9_+-]*(\/[A-Za-z0-9_+-]+)+$/;
+
 /**
- * True for a zone id fit to STORE: a region/city id such as "America/Chicago", or "UTC".
- * Stricter than isValidTimeZone on purpose. Intl also accepts abbreviations such as "EST" and
- * "PST", but "EST" is a fixed UTC-5 with no daylight saving: saved with a place, it would show
- * the wrong time all summer. Zones come from places (the airport table, the browser), which
- * always give region/city ids.
+ * The spelling of a zone id to STORE, or null when it is not one the app keeps.
+ *
+ * Kept: region/city ids such as "America/Chicago", and "UTC". Intl takes an id in any letter
+ * case, so "america/chicago" comes back as "America/Chicago": always store what this returns,
+ * never what was typed or sent.
+ *
+ * Refused, although Intl accepts them:
+ *  - abbreviations such as "EST" and "PST": "EST" is a fixed UTC-5 with no daylight saving, so
+ *    saved with a place it would show the wrong time all summer;
+ *  - "Etc/GMT+5" and its family: the same fixed offset under another name;
+ *  - bare offsets such as "+05:30".
+ * Zones come from places (the airport table, the browser), which always give region/city ids.
  */
-export function isIanaTimeZone(timeZone: unknown): timeZone is string {
-  if (typeof timeZone !== "string") return false;
-  if (timeZone !== "UTC" && !/^[A-Za-z][A-Za-z0-9_+-]*(\/[A-Za-z0-9_+-]+)+$/.test(timeZone)) return false;
-  return isValidTimeZone(timeZone);
+export function canonicalTimeZone(timeZone: unknown): string | null {
+  if (typeof timeZone !== "string") return null;
+  if (timeZone.toUpperCase() === "UTC") return "UTC";
+  if (!ZONE_SHAPE.test(timeZone) || FIXED_OFFSET_ZONE.test(timeZone)) return null;
+  let resolved: string;
+  try {
+    resolved = partsFormatter(timeZone).resolvedOptions().timeZone;
+  } catch {
+    return null;
+  }
+  // The same id in Intl's own letter case.
+  if (resolved.toLowerCase() === timeZone.toLowerCase()) return resolved;
+  // An alias Intl files under another name ("Etc/UTC" under "UTC", "America/Argentina/Buenos_Aires"
+  // under "America/Buenos_Aires"). Keep the name that was given, if it is written the usual way.
+  const usualCase = timeZone.split("/").every((part) => /^[A-Z]/.test(part)) && /[a-z]/.test(timeZone);
+  return usualCase ? timeZone : null;
 }
 
-/** Epoch milliseconds for any InstantInput. Throws RangeError on an unparseable value. */
+/**
+ * True for a zone id fit to STORE exactly as it is written: a region/city id such as
+ * "America/Chicago", or "UTC", in its usual letter case. Stricter than isValidTimeZone on
+ * purpose: see canonicalTimeZone for what is refused and why ("EST", "Etc/GMT+5", "+05:30").
+ * "america/chicago" is refused here; canonicalTimeZone("america/chicago") gives the id to store.
+ */
+export function isIanaTimeZone(timeZone: unknown): timeZone is string {
+  return typeof timeZone === "string" && canonicalTimeZone(timeZone) === timeZone;
+}
+
+// An ISO 8601 date and time that says where it stands: it ends in Z or in an offset.
+const ISO_INSTANT = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2}(?:\.\d{1,9})?)?(?:Z|[+-]\d{2}:\d{2})$/;
+
+/**
+ * Epoch milliseconds for any InstantInput. Throws RangeError on a value that is not an instant.
+ *
+ * A string must be ISO 8601 and end in Z or an offset: "2026-12-19T22:41:00Z",
+ * "2026-12-19T14:41:00-08:00". Anything else throws, on purpose. JavaScript reads a string with
+ * no zone ("2026-12-19T08:10", "Dec 19, 2026 8:10 AM") in the zone of whatever machine runs the
+ * code: one answer on the server, another in a browser in Chicago. A wall-clock reading is
+ * turned into an instant with zonedToUtc(reading, tz), which says where the clock is.
+ */
 export function toEpochMs(instant: InstantInput): number {
-  const ms =
-    typeof instant === "number"
-      ? instant
-      : typeof instant === "string"
-        ? Date.parse(instant)
-        : instant.getTime();
+  let ms: number;
+  if (typeof instant === "number") ms = instant;
+  else if (typeof instant === "string") {
+    if (!ISO_INSTANT.test(instant)) {
+      throw new RangeError(
+        `Not an instant: ${JSON.stringify(instant)}. An instant ends in Z or an offset (2026-12-19T22:41:00Z); for a local time use zonedToUtc(local, tz).`,
+      );
+    }
+    ms = Date.parse(instant);
+  } else ms = instant.getTime();
   if (!Number.isFinite(ms)) throw new RangeError(`Invalid instant: ${String(instant)}`);
   return ms;
 }
 
-/** A Date for any InstantInput. Throws RangeError on an unparseable value. */
+/** A Date for any InstantInput. Throws RangeError on a value that is not an instant. */
 export function toDate(instant: InstantInput): Date {
   return new Date(toEpochMs(instant));
 }

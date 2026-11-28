@@ -1,12 +1,24 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 // A minimal stand-in for Next's request cookie store. cookies() only works inside a request.
+// Like a browser, it drops a cookie that is set with maxAge 0; `removals` keeps the options of
+// every such call, because whether a browser honours it depends on them.
 const jar = new Map<string, { value: string; options?: Record<string, unknown> }>();
+const removals: { name: string; value: string; options?: Record<string, unknown> }[] = [];
+const deleteCalls: unknown[] = [];
 vi.mock("next/headers", () => ({
   cookies: async () => ({
     get: (name: string) => (jar.has(name) ? { name, value: jar.get(name)!.value } : undefined),
-    set: (name: string, value: string, options?: Record<string, unknown>) => void jar.set(name, { value, options }),
-    delete: (name: string) => void jar.delete(name),
+    set: (name: string, value: string, options?: Record<string, unknown>) => {
+      if (options?.maxAge === 0) {
+        removals.push({ name, value, options });
+        jar.delete(name);
+      } else jar.set(name, { value, options });
+    },
+    delete: (...args: unknown[]) => {
+      deleteCalls.push(args);
+      jar.delete(String(args[0]));
+    },
   }),
 }));
 // React's cache() only memoises inside a Server Component render; make it a pass-through here.
@@ -32,6 +44,7 @@ import { findOwnedPlan, requirePlan, requireUser } from "./require";
 import {
   SESSION_COOKIE,
   SESSION_COOKIE_NAMES,
+  SESSION_MAX_AGE_MS,
   SESSION_MS,
   createSession,
   deleteAllSessionsForUser,
@@ -46,7 +59,13 @@ beforeAll(async () => {
   t = await createTestDb();
 });
 afterAll(() => t.close());
-beforeEach(() => jar.clear());
+beforeEach(() => {
+  jar.clear();
+  removals.length = 0;
+  deleteCalls.length = 0;
+});
+
+const DAY = 24 * 60 * 60 * 1000;
 
 async function makeUser(email: string, name = "Test Person") {
   const [user] = await t.db
@@ -78,14 +97,18 @@ describe("cookie sessions", () => {
     const cookie = jar.get(SESSION_COOKIE)!;
     expect(cookie.value).toMatch(/^[A-Za-z0-9_-]{43}$/); // 32 random bytes, base64url
     expect(cookie.options).toMatchObject({ httpOnly: true, sameSite: "lax", path: "/", secure: false });
+    // The cookie lasts as long as a session can at most (90 days); the row ends after 30 days
+    // without a visit and is extended by use. So the cookie never ends before its session.
     const expires = cookie.options!.expires as Date;
-    expect(Math.abs(expires.getTime() - (Date.now() + SESSION_MS))).toBeLessThan(5000);
+    expect(Math.abs(expires.getTime() - (Date.now() + SESSION_MAX_AGE_MS))).toBeLessThan(5000);
+    expect([SESSION_MS, SESSION_MAX_AGE_MS]).toEqual([30 * DAY, 90 * DAY]);
 
     // Only the SHA-256 of the token is stored.
     const [row] = await t.db.select().from(schema.sessions).where(eq(schema.sessions.userId, user.id));
     expect(row.tokenHash).toMatch(/^[0-9a-f]{64}$/);
     expect(row.tokenHash).toBe(hashSessionToken(cookie.value));
     expect(JSON.stringify(row)).not.toContain(cookie.value);
+    expect(Math.abs(row.expiresAt.getTime() - (Date.now() + SESSION_MS))).toBeLessThan(5000);
 
     const current = await getUser();
     expect(current).toMatchObject({ id: user.id, email: "s1@example.com", name: "Lydia Hartley", timeStyle: "12h_with_24h", militaryStyle: "1441" });
@@ -97,6 +120,22 @@ describe("cookie sessions", () => {
     expect(jar.has(SESSION_COOKIE)).toBe(false);
     expect(await t.db.select().from(schema.sessions).where(eq(schema.sessions.userId, user.id))).toEqual([]);
     expect(await getUser()).toBeNull();
+  });
+
+  it("removes the cookie with the attributes it was set with, never with a bare delete", async () => {
+    const user = await makeUser("s1b@example.com");
+    await createSession(user.id);
+    const set = jar.get(SESSION_COOKIE)!.options!;
+    await destroySession();
+    // A browser ignores a Set-Cookie for a "__Host-" name that lacks Secure, and cookies().delete(name)
+    // sends none. So the cookie is set again, empty and expired, with the same attributes.
+    expect(deleteCalls).toEqual([]);
+    expect(removals).toEqual([{ name: SESSION_COOKIE, value: "", options: { httpOnly: true, secure: false, sameSite: "lax", path: "/", maxAge: 0 } }]);
+    for (const attribute of ["httpOnly", "secure", "sameSite", "path"]) expect(removals[0].options![attribute], attribute).toBe(set[attribute]);
+    // Signing out with no cookie at all still sends the removal (a stale cookie may be there).
+    removals.length = 0;
+    await destroySession();
+    expect(removals).toHaveLength(1);
   });
 
   it("ignores an unknown token, a tampered token and an expired session", async () => {
@@ -131,6 +170,53 @@ describe("cookie sessions", () => {
     expect(await getUser()).not.toBeNull();
     const [row] = await t.db.select().from(schema.sessions).where(eq(schema.sessions.userId, user.id));
     expect(row.expiresAt.getTime()).toBeGreaterThan(soon.getTime() + 20 * 24 * 60 * 60 * 1000);
+  });
+
+  it("ends a session for good at its maximum age, however often it was used", async () => {
+    const user = await makeUser("s3b@example.com");
+    await createSession(user.id);
+    const sessionOf = async () => (await t.db.select().from(schema.sessions).where(eq(schema.sessions.userId, user.id)))[0];
+    const age = (days: number) => new Date(Date.now() - days * DAY);
+
+    // 80 days old and used all along: still good, and near its idle end it is extended, but
+    // only up to day 90, not by another 30 days.
+    await t.db.update(schema.sessions).set({ createdAt: age(80), expiresAt: new Date(Date.now() + DAY) }).where(eq(schema.sessions.userId, user.id));
+    expect(await getUser()).not.toBeNull();
+    const extended = await sessionOf();
+    expect(Math.abs(extended.expiresAt.getTime() - (extended.createdAt.getTime() + SESSION_MAX_AGE_MS))).toBeLessThan(5000);
+    expect(extended.expiresAt.getTime()).toBeLessThan(Date.now() + 11 * DAY);
+
+    // One day short of the limit it works; past it, it does not, whatever expiresAt says.
+    await t.db.update(schema.sessions).set({ createdAt: age(89), expiresAt: new Date(Date.now() + 20 * DAY) }).where(eq(schema.sessions.userId, user.id));
+    expect(await getUser()).not.toBeNull();
+    await t.db.update(schema.sessions).set({ createdAt: age(91), expiresAt: new Date(Date.now() + 20 * DAY) }).where(eq(schema.sessions.userId, user.id));
+    expect(await getUser()).toBeNull();
+    // A refused session is not quietly extended.
+    expect((await sessionOf()).expiresAt.getTime()).toBeLessThan(Date.now() + 21 * DAY);
+
+    // Housekeeping removes it.
+    await deleteExpiredSessions();
+    expect(await sessionOf()).toBeUndefined();
+  });
+
+  it("a token used every 20 days stops working after 90, not never", async () => {
+    const user = await makeUser("s3c@example.com");
+    await createSession(user.id);
+    const [created] = await t.db.select().from(schema.sessions).where(eq(schema.sessions.userId, user.id));
+    const start = created.createdAt.getTime();
+    // Move the row back in time instead of the clock forward: day 20, 40, 60, 80 are visits.
+    const accepted: number[] = [];
+    for (const day of [20, 40, 60, 80, 100, 120]) {
+      const [row] = await t.db.select().from(schema.sessions).where(eq(schema.sessions.userId, user.id));
+      if (!row) break;
+      const shift = start - day * DAY - row.createdAt.getTime(); // negative: further into the past
+      await t.db
+        .update(schema.sessions)
+        .set({ createdAt: new Date(row.createdAt.getTime() + shift), expiresAt: new Date(row.expiresAt.getTime() + shift) })
+        .where(eq(schema.sessions.userId, user.id));
+      if (await getUser()) accepted.push(day);
+    }
+    expect(accepted).toEqual([20, 40, 60, 80]);
   });
 
   it("signing out on one device leaves the other signed in", async () => {

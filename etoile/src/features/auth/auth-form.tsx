@@ -4,9 +4,11 @@ import { useActionState, useId, useSyncExternalStore } from "react";
 import type { AuthFormState } from "./actions";
 
 // BARE ON PURPOSE. The visual identity has not been chosen; this form only proves that
-// accounts work. Whoever styles it: keep the labels ("Name", "Email", "Password") and the button
-// names ("Create account", "Sign in"), because scripts/shot.mjs and e2e/auth.spec.ts find the
-// controls by them.
+// accounts work. Whoever styles it is free to: scripts/shot.mjs and the shared steps in
+// e2e/support/account.ts find this form by its password field and its inputs by their type
+// (password, email, text), not by labels or button names. Keep it ONE <form> that contains the
+// password input(s), an email input (type="email") and the name as text input(s), submitted by
+// Enter; a show-password button must be type="button". Then nothing else needs to change.
 
 type Action = (prev: AuthFormState, formData: FormData) => Promise<AuthFormState>;
 

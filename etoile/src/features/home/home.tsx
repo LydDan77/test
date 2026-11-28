@@ -1,6 +1,6 @@
 import { signOut } from "@/features/auth/actions";
 import type { SessionUser } from "@/lib/auth";
-import { formatClock, formatDate, localDateOf } from "@/lib/time";
+import { clockOptionsFor, formatClock, formatDate, localDateOf } from "@/lib/time";
 
 // BARE ON PURPOSE. This is the placeholder Home for a signed-in person: it proves that the
 // session works and nothing more. The real Home (world clock, next up, what's left, heads up)
@@ -11,7 +11,8 @@ export function Home({ user, now }: { user: SessionUser; now: Date }) {
   // The time as it was when the page was rendered, in the person's home zone and their style.
   // (A clock that ticks is a client component; that belongs to the real Home.)
   const tz = user.home.tz;
-  const clock = formatClock(now, tz, { style: user.timeStyle, militaryStyle: user.militaryStyle });
+  // "clock": this line stands in for the world clock, where the 24-hour time is always shown.
+  const clock = formatClock(now, tz, clockOptionsFor(user, "clock"));
   const today = formatDate(localDateOf(now, tz), { weekday: "long", month: "long" });
   return (
     <section className="flex flex-col gap-4">

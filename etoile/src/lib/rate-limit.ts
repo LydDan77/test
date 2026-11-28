@@ -1,21 +1,26 @@
 import "server-only";
 
 import { createHash } from "node:crypto";
-import { eq, lt, sql } from "drizzle-orm";
+import { eq, sql, type SQL } from "drizzle-orm";
 import { getDb, schema } from "@/db";
 import { newId } from "@/lib/ids";
 
 // Fixed-window rate limiting on the rate_limits table. One atomic statement per check, so it
-// is correct across server instances and concurrent requests.
+// is correct across server instances and concurrent requests. Time is the DATABASE's clock,
+// read inside that statement: every instance judges a window by the same clock, so one whose
+// own clock runs fast can neither reset everyone's count nor open a window that never ends.
 
 export type RateLimitOptions = {
   /** How many attempts are allowed in one window. */
   limit: number;
   /** Length of the window in milliseconds. */
   windowMs: number;
-  /** The current time. For tests; defaults to now. */
+  /** The current time. FOR TESTS ONLY: leave it out and the database's clock is used. */
   now?: Date;
 };
+
+/** The longest window: 366 days. */
+const MAX_WINDOW_MS = 366 * 24 * 60 * 60_000;
 
 export type RateLimitResult = {
   /** False when this attempt is over the limit and must be refused. */
@@ -38,10 +43,17 @@ export type RateLimitResult = {
 export function rateLimitDisabled(): boolean {
   if (process.env.VERCEL) return false;
   const flag = process.env.RATE_LIMIT_DISABLED;
-  if (flag === "1") return true;
-  if (flag === "0") return false;
-  return process.env.NODE_ENV === "development";
+  const disabled = flag === "1" ? true : flag === "0" ? false : process.env.NODE_ENV === "development";
+  if (disabled && process.env.NODE_ENV === "production" && !warnedDisabled) {
+    warnedDisabled = true;
+    console.warn(
+      "[rate-limit] WARNING: RATE_LIMIT_DISABLED=1 in a production build. Every limit is OFF: sign-in, sign-up and guest " +
+        "actions can be tried without end. This is only for the end-to-end test server on localhost.",
+    );
+  }
+  return disabled;
 }
+let warnedDisabled = false;
 
 /**
  * A key that names what is being limited without storing who: `scope` stays readable
@@ -69,16 +81,24 @@ export function rateLimitKey(scope: string, ...parts: (string | null | undefined
  */
 export async function rateLimit(key: string, options: RateLimitOptions): Promise<RateLimitResult> {
   const { limit, windowMs } = options;
+  // A limit of NaN would allow nothing and a window of NaN would never end: both are mistakes
+  // in the calling code, so say so plainly instead of failing somewhere inside the database.
+  if (!Number.isFinite(limit) || limit < 1) throw new RangeError(`rateLimit: limit must be a number of at least 1, got ${String(limit)}`);
+  if (!Number.isFinite(windowMs) || windowMs <= 0 || windowMs > MAX_WINDOW_MS) {
+    throw new RangeError(`rateLimit: windowMs must be a number of milliseconds between 1 and ${MAX_WINDOW_MS}, got ${String(windowMs)}`);
+  }
+  if (options.now !== undefined && Number.isNaN(options.now.getTime())) throw new RangeError("rateLimit: now is not a valid date");
   if (rateLimitDisabled()) return { ok: true, remaining: limit, retryAfterMs: 0 };
 
-  const now = options.now ?? new Date();
-  const nowIso = now.toISOString();
-  const windowStartedBefore = new Date(now.getTime() - windowMs).toISOString();
   const t = schema.rateLimits;
+  // The database's clock, unless a test supplies the time.
+  const now = options.now ? sql`${options.now.toISOString()}::timestamptz` : sql`now()`;
+  const windowLength = sql`make_interval(secs => ${windowMs / 1000}::double precision)`;
+  // The window has ended when it started at or before (now - windowMs).
+  const ended = sql`${t.windowStart} <= ${now} - ${windowLength}`;
+  const epochMs = (value: SQL) => sql<number>`(extract(epoch from ${value}) * 1000)::double precision`.mapWith(Number);
 
   const db = await getDb();
-  // The window has ended when it started at or before (now - windowMs).
-  const ended = sql`${t.windowStart} <= ${windowStartedBefore}::timestamptz`;
   const [row] = await db
     .insert(t)
     .values({ id: newId(), key, count: 1, windowStart: now })
@@ -86,17 +106,18 @@ export async function rateLimit(key: string, options: RateLimitOptions): Promise
       target: t.key,
       set: {
         count: sql`case when ${ended} then 1 else ${t.count} + 1 end`,
-        windowStart: sql`case when ${ended} then ${nowIso}::timestamptz else ${t.windowStart} end`,
-        updatedAt: sql`${nowIso}::timestamptz`,
+        windowStart: sql`case when ${ended} then ${now} else ${t.windowStart} end`,
+        updatedAt: now,
       },
     })
-    .returning({ count: t.count, windowStart: t.windowStart });
+    .returning({ count: t.count, windowStartMs: epochMs(sql`${t.windowStart}`), nowMs: epochMs(now) });
 
-  const windowEndsAt = row.windowStart.getTime() + windowMs;
+  const windowEndsAt = row.windowStartMs + windowMs;
   return {
     ok: row.count <= limit,
-    remaining: Math.max(0, limit - row.count),
-    retryAfterMs: Math.max(0, windowEndsAt - now.getTime()),
+    remaining: Math.max(0, Math.floor(limit) - row.count),
+    // Never longer than the window itself, whatever the row says.
+    retryAfterMs: Math.min(windowMs, Math.max(0, Math.round(windowEndsAt - row.nowMs))),
   };
 }
 
@@ -106,10 +127,17 @@ export async function resetRateLimit(key: string): Promise<void> {
   await db.delete(schema.rateLimits).where(eq(schema.rateLimits.key, key));
 }
 
-/** Housekeeping: removes counters whose window started more than `olderThanMs` ago (default one day). */
-export async function pruneRateLimits(olderThanMs = 24 * 60 * 60_000, now = new Date()): Promise<void> {
+/**
+ * Housekeeping: removes counters whose window started more than `olderThanMs` ago (default one
+ * day). Like rateLimit() it goes by the database's clock; `now` is for tests.
+ */
+export async function pruneRateLimits(olderThanMs = 24 * 60 * 60_000, now?: Date): Promise<void> {
+  const age = Number.isFinite(olderThanMs) && olderThanMs >= 0 ? olderThanMs : 24 * 60 * 60_000;
+  const reference = now ? sql`${now.toISOString()}::timestamptz` : sql`now()`;
   const db = await getDb();
-  await db.delete(schema.rateLimits).where(lt(schema.rateLimits.windowStart, new Date(now.getTime() - olderThanMs)));
+  await db
+    .delete(schema.rateLimits)
+    .where(sql`${schema.rateLimits.windowStart} < ${reference} - make_interval(secs => ${age / 1000}::double precision)`);
 }
 
 /** "a minute", "5 minutes", "an hour", "2 hours": for the sentence that tells a person to wait. */

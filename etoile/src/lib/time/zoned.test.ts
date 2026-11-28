@@ -2,6 +2,7 @@ import { Temporal } from "temporal-polyfill"; // dev-only oracle
 import { describe, expect, it } from "vitest";
 import {
   calendarDayDifference,
+  canonicalTimeZone,
   formatLocalDateTime,
   isIanaTimeZone,
   isValidTimeZone,
@@ -9,6 +10,7 @@ import {
   offsetMinutes,
   parseLocalDateTime,
   toDate,
+  toEpochMs,
   utcToZoned,
   zoneCityName,
   zonedToUtc,
@@ -31,7 +33,7 @@ describe("isValidTimeZone", () => {
 
 describe("isIanaTimeZone", () => {
   it("accepts region/city ids and UTC, the forms fit to store", () => {
-    for (const tz of ["America/Chicago", "America/Argentina/Buenos_Aires", "Asia/Kolkata", "Asia/Calcutta", "Europe/London", "Pacific/Port_Moresby", "America/Port-au-Prince", "Etc/GMT+5", "Etc/UTC", "UTC"]) {
+    for (const tz of ["America/Chicago", "America/Argentina/Buenos_Aires", "Asia/Kolkata", "Asia/Calcutta", "Europe/London", "Pacific/Port_Moresby", "America/Port-au-Prince", "Africa/Dar_es_Salaam", "Etc/UTC", "UTC"]) {
       expect(isIanaTimeZone(tz), tz).toBe(true);
     }
   });
@@ -41,6 +43,100 @@ describe("isIanaTimeZone", () => {
     for (const tz of ["EST", "PST", "MST", "CET", "GMT", "EST5EDT", "+05:30", "Eastern", "America/Nowhere", "America/", "/Chicago", "America/Chicago ", "", null, undefined, 5]) {
       expect(isIanaTimeZone(tz), String(tz)).toBe(false);
     }
+  });
+
+  it("refuses a fixed offset under its Etc name: Etc/GMT+5 is the same trap as EST", () => {
+    // Intl takes it, and it is UTC-5 all year (the sign is the reverse of what it looks like).
+    expect(isValidTimeZone("Etc/GMT+5")).toBe(true);
+    expect(offsetMinutes("2026-07-01T00:00:00Z", "Etc/GMT+5")).toBe(-300);
+    for (const tz of ["Etc/GMT+5", "Etc/GMT-14", "Etc/GMT+0", "Etc/GMT-0", "etc/gmt+5", "ETC/GMT+12"]) {
+      expect(isIanaTimeZone(tz), tz).toBe(false);
+      expect(canonicalTimeZone(tz), tz).toBeNull();
+    }
+  });
+
+  it("refuses an id in the wrong letter case, so what is stored is always spelled one way", () => {
+    for (const tz of ["america/chicago", "AMERICA/CHICAGO", "America/chicago", "utc", "etc/utc", "asia/kolkata"]) {
+      expect(isValidTimeZone(tz), tz).toBe(true); // Intl does not mind
+      expect(isIanaTimeZone(tz), tz).toBe(false);
+    }
+  });
+});
+
+describe("canonicalTimeZone", () => {
+  it("gives the spelling to store, whatever letter case came in", () => {
+    expect(canonicalTimeZone("America/Chicago")).toBe("America/Chicago");
+    expect(canonicalTimeZone("america/chicago")).toBe("America/Chicago");
+    expect(canonicalTimeZone("AMERICA/CHICAGO")).toBe("America/Chicago");
+    expect(canonicalTimeZone("america/port-au-prince")).toBe("America/Port-au-Prince");
+    expect(canonicalTimeZone("asia/calcutta")).toBe("Asia/Calcutta");
+    expect(canonicalTimeZone("utc")).toBe("UTC");
+    expect(canonicalTimeZone("UTC")).toBe("UTC");
+    // An alias keeps the name it was given.
+    expect(canonicalTimeZone("Etc/UTC")).toBe("Etc/UTC");
+    expect(canonicalTimeZone("America/Argentina/Buenos_Aires")).toBe("America/Argentina/Buenos_Aires");
+    expect(zoneCityName(canonicalTimeZone("america/chicago")!)).toBe("Chicago");
+  });
+
+  it("gives null for anything not fit to store", () => {
+    for (const tz of ["EST", "PST", "GMT", "+05:30", "Etc/GMT+5", "Mars/Olympus", "America/", "", " America/Chicago", null, undefined, 5, {}]) {
+      expect(canonicalTimeZone(tz), String(tz)).toBeNull();
+    }
+  });
+
+  it("agrees with isIanaTimeZone: a zone is fit to store exactly when it is its own canonical spelling", () => {
+    for (const tz of Intl.supportedValuesOf("timeZone")) {
+      const canonical = canonicalTimeZone(tz);
+      if (canonical === null) {
+        // Only the bare abbreviations and fixed offsets Intl lists are refused.
+        expect(tz.includes("/") && !/^Etc\/GMT[+-]\d+$/.test(tz), tz).toBe(false);
+        continue;
+      }
+      expect(canonical, tz).toBe(tz);
+      expect(isIanaTimeZone(tz), tz).toBe(true);
+      expect(canonicalTimeZone(tz.toLowerCase()), tz).toBe(tz);
+      expect(canonicalTimeZone(tz.toUpperCase()), tz).toBe(tz);
+    }
+  });
+});
+
+describe("toEpochMs", () => {
+  it("takes a Date, epoch milliseconds, or an ISO string that ends in Z or an offset", () => {
+    const ms = Date.UTC(2026, 11, 19, 22, 41, 7);
+    expect(toEpochMs(new Date(ms))).toBe(ms);
+    expect(toEpochMs(ms)).toBe(ms);
+    expect(toEpochMs("2026-12-19T22:41:07Z")).toBe(ms);
+    expect(toEpochMs("2026-12-19T22:41:07.000Z")).toBe(ms);
+    expect(toEpochMs("2026-12-19T14:41:07-08:00")).toBe(ms);
+    expect(toEpochMs("2026-12-20T04:11:07+05:30")).toBe(ms);
+    expect(toEpochMs("2026-12-19T22:41Z")).toBe(Date.UTC(2026, 11, 19, 22, 41));
+    expect(toEpochMs(new Date(ms).toISOString())).toBe(ms);
+  });
+
+  it("refuses a string with no zone: the machine would read it in its own", () => {
+    for (const text of [
+      "2026-12-19T08:10", // a local date-time: use zonedToUtc
+      "2026-12-19T08:10:00",
+      "2026-12-19 08:10:00Z",
+      "2026-12-19", // a local date, not an instant
+      "12/19/2026",
+      "Dec 19, 2026 8:10 AM",
+      "Sat, 19 Dec 2026 08:10:00 GMT",
+      "2026-12-19T08:10:00+0530",
+      "2026-12-19T08:10:00 +05:30",
+      "2026-12-19t08:10:00z",
+      " 2026-12-19T08:10:00Z",
+      "1797667800000",
+      "",
+      "not a date",
+    ]) {
+      expect(() => toEpochMs(text), JSON.stringify(text)).toThrow(RangeError);
+      expect(() => utcToZoned(text, "UTC"), JSON.stringify(text)).toThrow(RangeError);
+    }
+    // A string of the right shape that names no real instant.
+    expect(() => toEpochMs("2026-13-45T99:99:00Z")).toThrow(RangeError);
+    expect(() => toEpochMs(Number.NaN)).toThrow(RangeError);
+    expect(() => toEpochMs(new Date("nope"))).toThrow(RangeError);
   });
 });
 

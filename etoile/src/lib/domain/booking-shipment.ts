@@ -107,5 +107,9 @@ export const shipmentDetailsSchema = z.object({
   contents: z.array(shipmentContentSchema).max(100).default([]),
   /** One entry per box or bag. */
   parcels: z.array(parcelSchema).max(30).default([]),
-});
+})
+  .refine((d) => !d.shipByDate || !d.targetDeliveryDate || d.shipByDate <= d.targetDeliveryDate, {
+    message: "The ship-by date is on or before the day it should arrive",
+    path: ["shipByDate"],
+  });
 export type ShipmentDetails = z.infer<typeof shipmentDetailsSchema>;

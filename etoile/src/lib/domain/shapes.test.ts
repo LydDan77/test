@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   NO_SPLIT,
   announcementSchema,
+  cleanText,
   expenseSplitSchema,
   formatMoney,
   hasCoordinates,
@@ -21,6 +22,9 @@ import {
   rsvpAnswersSchema,
   rsvpQuestionSchema,
   rsvpQuestionsSchema,
+  sectionIsVisibleTo,
+  sectionVisibility,
+  singleLine,
   siteSectionSchema,
   siteSectionsSchema,
   splitMatchesAmount,
@@ -30,6 +34,7 @@ import {
   zonedInstantSchema,
   BOOKING_KINDS,
   EXPENSE_CATEGORIES,
+  GUESTS_ONLY_SECTION_TYPES,
   SITE_SECTION_TYPES,
   type RsvpQuestion,
 } from "./index";
@@ -64,6 +69,29 @@ describe("PlaceRef", () => {
     expect(placeRefSchema.safeParse({ ...base, url: "javascript:alert(1)" }).success).toBe(false);
     expect(placeRefSchema.safeParse({ ...base, url: "ftp://example.com" }).success).toBe(false);
     expect(placeRefSchema.safeParse({ ...base, lat: 0, lon: 0 }).success).toBe(true); // zero is a coordinate
+  });
+
+  it("stores a link the way a browser reads it, and refuses the tricky ones", () => {
+    const base = { kind: "city", name: "Orlando", tz: "America/New_York" };
+    const url = (value: string) => placeRefSchema.safeParse({ ...base, url: value });
+    // Spaces around it are trimmed, not stored.
+    expect(url(" https://ok.example ").data?.url).toBe("https://ok.example");
+    expect(url("https://flymco.com").data?.url).toBe("https://flymco.com"); // as typed
+    expect(url("HTTPS://Example.COM:443/Path?q=1#top").data?.url).toBe("https://example.com/Path?q=1#top");
+    // A line break or tab inside it, a backslash, a user name or a password: refused.
+    for (const bad of ["https://exa\nmple.com", "https://exa\tmple.com", "https://example.com/a b", "https://user:pw@evil.example", "https://bank.example@evil.example/", "https:\\\\evil.example", "https://exa\u0000mple.com", "//example.com", "example.com"]) {
+      expect(url(bad).success, JSON.stringify(bad)).toBe(false);
+    }
+  });
+
+  it("cleans control characters out of text instead of storing them", () => {
+    const parsed = placeRefSchema.parse({ kind: "city", name: "Or\u0000lan\u0007do\tCity\r\nFL", notes: "Line one\r\nLine\u0000 two\u2028three\ttab", tz: "America/New_York" });
+    expect(parsed.name).toBe("Orlando City FL"); // one line
+    expect(parsed.notes).toBe("Line one\nLine two\nthree\ttab"); // line breaks kept
+    expect(singleLine("a\u0000b\nc")).toBe("ab c");
+    expect(cleanText("a\u0000b\r\nc\u009f")).toBe("ab\nc");
+    // Text that is only control characters is empty, and empty is refused.
+    expect(placeRefSchema.safeParse({ kind: "city", name: "\u0000\u0001", tz: "America/New_York" }).success).toBe(false);
   });
 
   it("trims text and drops fields it does not know", () => {
@@ -295,6 +323,24 @@ describe("site sections", () => {
     expect(siteSectionsSchema.safeParse([section("notes"), section("notes"), section("notes"), section("notes")]).success).toBe(false);
   });
 
+  it("never lets the arrivals section be shown to everyone", () => {
+    // Product spec 9.1: guests only, cannot be made public. Whatever is sent is stored as "guests".
+    expect(siteSectionSchema.parse({ type: "arrivals", enabled: true, visibility: "everyone" })).toEqual({ type: "arrivals", enabled: true, visibility: "guests", content: {} });
+    expect(siteSectionSchema.parse({ type: "arrivals", enabled: true, visibility: "guests" }).visibility).toBe("guests");
+    const sections = siteSectionsSchema.parse([{ type: "cover", enabled: true, visibility: "everyone" }, { type: "arrivals", enabled: true, visibility: "everyone" }]);
+    expect(sections.map((s) => `${s.type}:${s.visibility}`)).toEqual(["cover:everyone", "arrivals:guests"]);
+    expect([...GUESTS_ONLY_SECTION_TYPES]).toEqual(["arrivals"]);
+
+    // A row that was written some other way is still read as guests-only.
+    const stored = { type: "arrivals", enabled: true, visibility: "everyone" } as const;
+    expect(sectionVisibility(stored)).toBe("guests");
+    expect(sectionIsVisibleTo(stored, "everyone")).toBe(false);
+    expect(sectionIsVisibleTo(stored, "guest")).toBe(true);
+    expect(sectionIsVisibleTo({ type: "cover", enabled: true, visibility: "everyone" }, "everyone")).toBe(true);
+    expect(sectionIsVisibleTo({ type: "who", enabled: true, visibility: "guests" }, "everyone")).toBe(false);
+    expect(sectionIsVisibleTo({ type: "cover", enabled: false, visibility: "everyone" }, "guest")).toBe(false);
+  });
+
   it("reads typed content without throwing on what does not fit", () => {
     expect(readSectionContent("faq", { items: [{ question: "Is there parking?", answer: "Yes, in the driveway." }] })?.items).toHaveLength(1);
     expect(readSectionContent("faq", {})).toEqual({ items: [] });
@@ -335,6 +381,8 @@ describe("reply questions and answers", () => {
     expect(rsvpQuestionSchema.safeParse({ id: "q", label: "Rate us", type: "stars" }).success).toBe(false);
     expect(rsvpQuestionSchema.safeParse({ id: "q", label: "Shoe size", type: "number", builtIn: "shoe_size" }).success).toBe(false);
     expect(rsvpQuestionsSchema.safeParse([{ id: "same", label: "A", type: "text" }, { id: "same", label: "B", type: "text" }]).success).toBe(false);
+    expect(rsvpQuestionSchema.safeParse({ id: "q", label: "Pick one", type: "choice", options: ["a", "a"] }).success).toBe(false); // the same option twice
+    expect(rsvpQuestionSchema.safeParse({ id: "q", label: "Pick one", type: "choice", options: ["a", " a "] }).success).toBe(false); // the same once trimmed
   });
 
   it("checks a guest's answers against the questions", () => {
@@ -346,6 +394,23 @@ describe("reply questions and answers", () => {
     expect(validateRsvpAnswers(questions, { q2: "Friday" })).toEqual({ ok: true, answers: { q2: "Friday" } });
     expect(validateRsvpAnswers(questions, {})).toEqual({ ok: false, errors: { q2: "Please answer this one" } });
     expect(validateRsvpAnswers(questions, null)).toMatchObject({ ok: false });
+  });
+
+  it("treats an answer of only spaces as no answer, and takes numbers only as people write them", () => {
+    const required: RsvpQuestion[] = rsvpQuestionsSchema.parse([
+      { id: "t", label: "Who is driving?", type: "text", required: true },
+      { id: "n", label: "How many seats?", type: "number", required: true },
+    ]);
+    expect(validateRsvpAnswers(required, { t: "   ", n: " " })).toEqual({ ok: false, errors: { t: "Please answer this one", n: "Please answer this one" } });
+    expect(validateRsvpAnswers(required, { t: "\u0000", n: "3" })).toEqual({ ok: false, errors: { t: "Please answer this one" } });
+    for (const odd of ["0x10", "1e5", "1,5", "-1", "+2", ".5", "five", "1 2", "Infinity", Number.NaN, Number.POSITIVE_INFINITY, -1, 100_001]) {
+      expect(validateRsvpAnswers(required, { t: "Mark", n: odd }), String(odd)).toEqual({ ok: false, errors: { n: "Enter a number" } });
+    }
+    expect(validateRsvpAnswers(required, { t: " Mark ", n: " 4 " })).toEqual({ ok: true, answers: { t: "Mark", n: 4 } });
+    expect(validateRsvpAnswers(required, { t: "Mark", n: "2.5" })).toEqual({ ok: true, answers: { t: "Mark", n: 2.5 } });
+    expect(validateRsvpAnswers(required, { t: "Mark", n: 0 })).toEqual({ ok: true, answers: { t: "Mark", n: 0 } });
+    // An optional number left as spaces is simply not answered.
+    expect(validateRsvpAnswers(questions, { q2: "Friday", q4: " " })).toEqual({ ok: true, answers: { q2: "Friday" } });
   });
 
   it("refuses answers that were not on offer", () => {

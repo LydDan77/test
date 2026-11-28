@@ -15,6 +15,7 @@ import {
   rideDetailsSchema,
   shipmentDetailsSchema,
   unfilledListSchema,
+  withoutEmptyText,
   BOOKING_KINDS,
   type BookingDetails,
   type PlaceRef,
@@ -376,5 +377,64 @@ describe("shared booking shapes", () => {
     expect(bookingKindListSchema.parse(["flight", "lodging", "car"])).toEqual(["flight", "lodging", "car"]);
     expect(bookingKindListSchema.safeParse(["flight", "flight"]).success).toBe(false);
     expect(bookingKindListSchema.safeParse(["cruise"]).success).toBe(false);
+  });
+});
+
+describe("bookings that contradict themselves", () => {
+  const leg = (from: string, to: string, departsAt: string, arrivesAt: string) => ({ ...segment, originIata: from, destinationIata: to, departsAt, arrivesAt });
+
+  it("refuses a flight to the airport it left from", () => {
+    expect(parseBookingDetails("flight", { segments: [leg("SEA", "SEA", "2026-12-19T16:10:00Z", "2026-12-19T21:35:00Z")] })).toMatchObject({
+      ok: false,
+      error: "segments.0.destinationIata: A flight lands at a different airport from the one it leaves",
+    });
+  });
+
+  it("accepts flights out of order: the schedule points that out to the person, the schema does not refuse it", () => {
+    // The connection leaves before the first flight has landed. detectConflicts (src/lib/itinerary)
+    // reports it; code that reads segments must not assume they are in time order.
+    const overlapping = parseBookingDetails("flight", {
+      segments: [leg("SEA", "DEN", "2026-12-19T16:10:00Z", "2026-12-19T19:00:00Z"), leg("DEN", "MCO", "2026-12-19T18:30:00Z", "2026-12-19T22:00:00Z")],
+    });
+    expect(overlapping.ok).toBe(true);
+  });
+
+  it("refuses a search that comes back before it leaves, or goes nowhere", () => {
+    expect(parseBookingDetails("flight", { search: { departDate: "2026-12-27", returnDate: "2026-12-19" } })).toMatchObject({ ok: false });
+    expect(parseBookingDetails("flight", { search: { originIata: "SEA", destinationIata: "SEA" } })).toMatchObject({ ok: false });
+    expect(parseBookingDetails("flight", { search: { departDate: "2026-12-19", returnDate: "2026-12-19", originIata: "SEA", destinationIata: "MCO" } }).ok).toBe(true);
+  });
+
+  it("refuses a parcel that ships after it should have arrived", () => {
+    expect(parseBookingDetails("shipment", { shipByDate: "2026-12-18", targetDeliveryDate: "2026-12-16" })).toMatchObject({
+      ok: false,
+      error: "shipByDate: The ship-by date is on or before the day it should arrive",
+    });
+    expect(parseBookingDetails("shipment", { shipByDate: "2026-12-10", targetDeliveryDate: "2026-12-16" }).ok).toBe(true);
+  });
+
+  it("refuses a last possible day that comes before the recommended one", () => {
+    expect(actBySchema.safeParse({ recommended: "2026-12-05", hard: "2026-11-28" }).success).toBe(false);
+    expect(actBySchema.safeParse({ recommended: "2026-11-28", hard: "2026-11-28" }).success).toBe(true);
+  });
+});
+
+describe("what a form sends for a field left empty", () => {
+  it("is refused as it is, and accepted once the empty fields are dropped", () => {
+    // formText() gives "" for an empty input, and an optional text field is not an empty one.
+    const fromForm = { propertyName: "", contactName: "  ", accessNotes: "", checkInDate: "2026-12-19", rooms: [{ label: "Bunk room", personIds: [] }] };
+    expect(parseBookingDetails("lodging", fromForm)).toMatchObject({ ok: false, error: expect.stringMatching(/^propertyName: /) });
+    const cleaned = parseBookingDetails("lodging", withoutEmptyText(fromForm));
+    expect(cleaned).toMatchObject({ ok: true, details: { kind: "lodging", checkInDate: "2026-12-19", rooms: [{ label: "Bunk room", personIds: [] }] } });
+    if (cleaned.ok) expect(cleaned.details).not.toHaveProperty("propertyName");
+  });
+
+  it("drops empty text, null and undefined at every depth, and nothing else", () => {
+    expect(
+      withoutEmptyText({ a: "", b: " \n ", c: null, d: undefined, e: 0, f: false, g: "kept", h: { i: "", j: "in" }, k: [{ l: "", m: 1 }, "", "x"], n: [] }),
+    ).toEqual({ e: 0, f: false, g: "kept", h: { j: "in" }, k: [{ m: 1 }, "", "x"], n: [] });
+    const when = new Date("2026-12-19T00:00:00Z");
+    expect(withoutEmptyText({ when })).toEqual({ when }); // not a plain object: left alone
+    expect(withoutEmptyText("")).toBe("");
   });
 });
